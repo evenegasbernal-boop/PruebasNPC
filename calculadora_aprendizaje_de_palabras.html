@@ -242,7 +242,7 @@
       </tbody>
     </table>
     </div>
-    <div class="note">Percentil y clasificación se obtienen automáticamente de las tablas NEURONORMA del grupo seleccionado (Inferior P≤20 · Límite P30 · Medio P40–70 · Superior P≥80). Las puntuaciones a escala y T se capturan manualmente. LisApr = suma de correctas de los 5 ensayos de Lista A; LisE5 = correctas del ensayo 5.</div>
+    <div class="note">Percentil, clasificación, puntuación a escala y T se calculan automáticamente con las tablas NEURONORMA del grupo seleccionado (Inferior P≤20 · Límite P30 · Medio P40–70 · Superior P≥80). Escalar NEURONORMA: media 10, DE 3 (P6–10→6, P19–28→8, P29–40→9, P41–59→10, P60–71→11, P72–81→12, P90–94→14, P95–97→15); T = 50 + 10·(escalar − 10)/3. Como la tabla del Excel solo llega a P10 y P95, los extremos se muestran como ≤ / ≥. LisApr = suma de correctas de los 5 ensayos de Lista A; LisE5 = correctas del ensayo 5.</div>
   </section>
 
   <section>
@@ -453,6 +453,17 @@ function classify(p){
   if(p <= 70) return 'Medio';
   return 'Superior';
 }
+/* Percentil → puntuación escalar NEURONORMA (media 10, DE 3), según los rangos percentilares de Peña-Casanova et al. (2009):
+   6–10→6 · 11–18→7 · 19–28→8 · 29–40→9 · 41–59→10 · 60–71→11 · 72–81→12 · 82–89→13 · 90–94→14 · 95–97→15.
+   P10 significa "P10 o menos" y P95 "P95 o más", por eso se muestran como ≤ / ≥. */
+const PCT_TO_SE = {10:6, 20:8, 30:9, 40:9, 50:10, 60:11, 70:11, 80:12, 90:14, 95:15};
+function scaledFor(p){
+  if(p === null) return null;
+  const se = PCT_TO_SE[p];
+  const T = Math.round(50 + 10 * (se - 10) / 3);
+  const pre = p === 10 ? '≤' : (p === 95 ? '≥' : '');
+  return {se, T, seLabel: pre + se, TLabel: pre + T};
+}
 function repValue(d){
   if(!isFinite(d.lo)) return d.hi;
   if(!isFinite(d.hi)) return d.lo;
@@ -528,8 +539,8 @@ function buildSummaryRows(){
   SCORE_KEYS.forEach(k=>{
     pct.insertAdjacentHTML('beforeend', `<td class="pct" id="pct-${k}">—</td>`);
     cls.insertAdjacentHTML('beforeend', `<td id="cls-${k}"></td>`);
-    esc.insertAdjacentHTML('beforeend', `<td><input type="number" id="esc-${k}"></td>`);
-    T.insertAdjacentHTML('beforeend', `<td><input type="number" id="T-${k}"></td>`);
+    esc.insertAdjacentHTML('beforeend', `<td class="pct" id="esc-${k}">—</td>`);
+    T.insertAdjacentHTML('beforeend', `<td class="pct" id="T-${k}">—</td>`);
   });
 }
 
@@ -731,7 +742,10 @@ function recalcAll(){
   SCORE_KEYS.forEach(k=>{
     const p = g ? percentileFor(g.tabla[k], s[k]) : null;
     const c = classify(p);
-    lastNorm[k] = {p, label: pctLabel(p), cls: c};
+    const sc = scaledFor(p);
+    lastNorm[k] = {p, label: pctLabel(p), cls: c, se: sc ? sc.seLabel : '—', T: sc ? sc.TLabel : '—'};
+    document.getElementById('esc-'+k).textContent = lastNorm[k].se;
+    document.getElementById('T-'+k).textContent = lastNorm[k].T;
     document.getElementById('pct-'+k).textContent = g ? pctLabel(p) : '—';
     document.getElementById('cls-'+k).innerHTML = c ? `<span class="cls cls-${c}">${c}</span>` : '';
   });
@@ -1233,11 +1247,25 @@ function dataUrlToBytes(url){
   return out;
 }
 
+function loadScript(src){
+  return new Promise((res, rej)=>{
+    const s = document.createElement('script');
+    s.src = src; s.onload = res; s.onerror = ()=>rej(new Error('no se pudo cargar ' + src));
+    document.head.appendChild(s);
+  });
+}
+async function ensureDocxLib(){
+  if(window.docx) return;
+  for(const src of ['https://unpkg.com/docx@8.5.0/build/index.umd.js', 'https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js']){
+    try{ await loadScript(src); if(window.docx) return; }catch(e){}
+  }
+  throw new Error('No se pudo cargar la librería para generar .docx. Revise su conexión a internet e intente de nuevo.');
+}
 async function exportDocx(){
-  if(!window.docx){ alert('No se pudo cargar la librería para generar .docx (requiere conexión a internet la primera vez).'); return; }
   const btn = document.getElementById('btnDocx');
   btn.disabled = true;
   try{
+    await ensureDocxLib();
     recalcAll();
     const D = window.docx;
     const T = (text, o={}) => new D.TextRun({
@@ -1311,10 +1339,10 @@ async function exportDocx(){
       const c = lastNorm[k] && lastNorm[k].cls;
       return c ? Cell(c, {fill: CLS_COLORS[c][0], color: CLS_COLORS[c][1], font: SANS, size: 7, caps: true, bold: true}) : Cell('');
     })]));
-    sumRows.push(Row([lbl('Puntuación a escala'), ...SCORE_KEYS.map(k=>Cell(val('esc-'+k)))]));
-    sumRows.push(Row([lbl('Puntuación corregida (T)'), ...SCORE_KEYS.map(k=>Cell(val('T-'+k)))]));
+    sumRows.push(Row([lbl('Puntuación a escala'), ...SCORE_KEYS.map(k=>Cell(lastNorm[k].se, {font: SANS, size: 9, bold: true}))]));
+    sumRows.push(Row([lbl('Puntuación corregida (T)'), ...SCORE_KEYS.map(k=>Cell(lastNorm[k].T, {font: SANS, size: 9, bold: true}))]));
     body.push(Table(sumRows, {cols: SUMCOLS}));
-    body.push(Note('Percentil y clasificación según NEURONORMA (Inferior P≤20 · Límite P30 · Medio P40–70 · Superior P≥80). LisApr = suma de correctas de los ensayos 1–5.'));
+    body.push(Note('Percentil, clasificación y puntuaciones derivadas según NEURONORMA (Inferior P≤20 · Límite P30 · Medio P40–70 · Superior P≥80). Escalar: media 10, DE 3; T: media 50, DE 10. ≤/≥ indican los extremos de la tabla (P≤10 / P≥95). LisApr = suma de correctas de los ensayos 1–5.'));
 
     /* Tablas de ensayos */
     function ensayosTable(prefix, palabras, num){

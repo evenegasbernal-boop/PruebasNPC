@@ -144,7 +144,7 @@
   .zone-media{background:#eef0ee;color:#5b6b73;}
   .zone-recencia{background:var(--amber-soft);color:var(--amber);}
   .zone-delta{background:#f4f6f5;color:var(--ink);}
-  input.order-input{width:34px;text-align:center;border:1px solid var(--line);border-radius:2px;padding:2px 1px;font-family:'Helvetica Neue',Arial,sans-serif;font-size:12.5px;}
+  select.order-input{width:52px;max-width:none;cursor:pointer;background:#fff;text-align:center;border:1px solid var(--line);border-radius:2px;padding:2px 1px;font-family:'Helvetica Neue',Arial,sans-serif;font-size:12.5px;}
   .seq-box{margin-top:10px;padding:10px 12px;background:#f4f6f5;border-radius:4px;font-family:'Helvetica Neue',Arial,sans-serif;font-size:12px;}
   .seq-line{padding:3px 0;color:var(--ink);}
   .seq-line b{color:var(--accent);margin-right:4px;}
@@ -533,6 +533,7 @@ function buildSummaryRows(){
   });
 }
 
+const ORDER_OPTS = '<option value="">—</option>' + Array.from({length:16},(_,i)=>`<option value="${i+1}">${i+1}</option>`).join('');
 function buildEnsayosTable(containerId, palabras, numEnsayos, prefix){
   let head = '<tr><th class="word">Lista</th>';
   for(let e=1;e<=numEnsayos;e++) head += `<th>Ens ${e}</th>`;
@@ -541,7 +542,7 @@ function buildEnsayosTable(containerId, palabras, numEnsayos, prefix){
   palabras.forEach((p,i)=>{
     rows += `<tr><td class="word">${i+1}. ${p}</td>`;
     for(let e=1;e<=numEnsayos;e++){
-      rows += `<td><input type="number" class="order-input" min="1" max="16" step="1" placeholder="—" data-block="${prefix}" data-col="${e}" data-row="${i}"></td>`;
+      rows += `<td><select class="order-input" data-block="${prefix}" data-col="${e}" data-row="${i}">${ORDER_OPTS}</select></td>`;
     }
     rows += '</tr>';
   });
@@ -556,7 +557,7 @@ function buildEnsayosTable(containerId, palabras, numEnsayos, prefix){
   intr += '</tr>';
   document.getElementById(containerId).innerHTML =
     `<table><thead>${head}</thead><tbody>${rows}${correctas}${perse}${intr}</tbody></table>
-     <div class="note" style="margin-top:6px;">Escriba en cada celda el número de orden en que el paciente dijo esa palabra dentro del ensayo (1, 2, 3...); deje en blanco si no la recordó. No importa si hay huecos, solo el orden relativo entre las palabras dichas.</div>
+     <div class="note" style="margin-top:6px;">Elija en cada celda, de la lista desplegable, el número de orden en que el paciente dijo esa palabra dentro del ensayo (1, 2, 3...); deje “—” si no la recordó. No importa si hay huecos, solo el orden relativo entre las palabras dichas.</div>
      <div class="seq-box" id="${prefix}-sequences"></div>`;
 }
 
@@ -565,7 +566,7 @@ function getSequences(prefix, palabras, numEnsayos){
   for(let e=1;e<=numEnsayos;e++){
     const entries = []; const seen = {}; let hasDup = false;
     palabras.forEach((p,i)=>{
-      const inp = document.querySelector(`input[data-block="${prefix}"][data-col="${e}"][data-row="${i}"]`);
+      const inp = document.querySelector(`.order-input[data-block="${prefix}"][data-col="${e}"][data-row="${i}"]`);
       if(inp && inp.value !== ''){
         const val = parseFloat(inp.value);
         if(seen[val]) hasDup = true;
@@ -647,7 +648,7 @@ buildRecognitionTable();
 /* ================== CÁLCULOS ================== */
 function recalcEnsayos(prefix, numEnsayos, palabras){
   for(let e=1;e<=numEnsayos;e++){
-    const inputs = document.querySelectorAll(`input.order-input[data-block="${prefix}"][data-col="${e}"]`);
+    const inputs = document.querySelectorAll(`select.order-input[data-block="${prefix}"][data-col="${e}"]`);
     let count = 0;
     inputs.forEach(inp=>{ if(inp.value !== '') count++; });
     const cell = document.getElementById(`${prefix}-correctas-${e}`);
@@ -906,7 +907,7 @@ function computeSerialPosition(mode){
     let correct = 0, total = 0;
     const ensayos = mode === '1' ? [1] : [1,2,3,4,5];
     ensayos.forEach(e=>{
-      const inp = document.querySelector(`input[data-block="A"][data-col="${e}"][data-row="${i}"]`);
+      const inp = document.querySelector(`.order-input[data-block="A"][data-col="${e}"][data-row="${i}"]`);
       if(inp && inp.value !== '') correct++;
       total++;
     });
@@ -1322,7 +1323,7 @@ async function exportDocx(){
       palabras.forEach((p,i)=>{
         rows.push(Row([Cell(`${i+1}. ${p}`, {align: 'left', size: 10}),
           ...Array.from({length:num},(_,e)=>{
-            const inp = document.querySelector(`input[data-block="${prefix}"][data-col="${e+1}"][data-row="${i}"]`);
+            const inp = document.querySelector(`.order-input[data-block="${prefix}"][data-col="${e+1}"][data-row="${i}"]`);
             return Cell(inp && inp.value !== '' ? inp.value : '', {font: SANS, size: 9.5});
           })]));
       });

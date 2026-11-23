@@ -1,0 +1,1511 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Calculadora · Aprendizaje de Palabras (BNE)</title>
+<style>
+  :root{
+    --ink:#1c2a33;
+    --paper:#fbfaf7;
+    --panel:#ffffff;
+    --line:#d8dee2;
+    --line-soft:#e9edf0;
+    --accent:#3d6b70;
+    --accent-soft:#e4eeee;
+    --amber:#a9752c;
+    --amber-soft:#f6ecdc;
+    --good:#3d6b70;
+    --danger:#a5473a;
+    --danger-soft:#f6e6e3;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Iowan Old Style','Palatino Linotype',Palatino,Georgia,serif;
+    font-size:14px;
+    line-height:1.45;
+    padding:28px 20px 80px;
+  }
+  .wrap{max-width:1180px;margin:0 auto;}
+  h1{font-size:22px;letter-spacing:.02em;margin:0 0 2px;font-weight:600;}
+  .subtitle{
+    font-family:'Helvetica Neue',Arial,sans-serif;font-size:11.5px;color:#5b6b73;
+    text-transform:uppercase;letter-spacing:.09em;margin-bottom:18px;
+  }
+  h2{
+    font-family:'Helvetica Neue',Arial,sans-serif;font-size:12.5px;text-transform:uppercase;
+    letter-spacing:.08em;color:var(--accent);border-bottom:1px solid var(--line);
+    padding-bottom:6px;margin:0 0 12px;display:flex;align-items:baseline;justify-content:space-between;
+  }
+  h3{
+    font-family:'Helvetica Neue',Arial,sans-serif;font-size:11px;text-transform:uppercase;
+    letter-spacing:.07em;color:#5b6b73;margin:14px 0 6px;
+  }
+  section{
+    background:var(--panel);border:1px solid var(--line);border-radius:3px;
+    padding:16px 18px 20px;margin-bottom:16px;
+  }
+  .patient-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px 16px;}
+  .patient-grid label, .cfg-grid label{
+    display:block;font-family:'Helvetica Neue',Arial,sans-serif;font-size:10px;
+    text-transform:uppercase;letter-spacing:.06em;color:#7a8890;margin-bottom:3px;
+  }
+  .field-input{
+    width:100%;border:none;border-bottom:1px solid var(--line);background:transparent;
+    padding:3px 1px;font-family:inherit;font-size:13.5px;color:var(--ink);
+  }
+  .field-input:focus{outline:none;border-bottom-color:var(--accent);}
+
+  table{border-collapse:collapse;width:100%;font-size:13px;}
+  th,td{border:1px solid var(--line-soft);padding:5px 7px;text-align:center;}
+  th{
+    background:var(--accent-soft);font-family:'Helvetica Neue',Arial,sans-serif;font-size:10.5px;
+    text-transform:uppercase;letter-spacing:.04em;color:var(--accent);font-weight:600;
+  }
+  td.word{text-align:left;font-size:13.5px;}
+  td.rowlabel{text-align:right;font-family:'Helvetica Neue',Arial,sans-serif;font-size:10.5px;text-transform:uppercase;color:#5b6b73;}
+  tr.totals td{background:#f4f6f5;font-weight:600;}
+  tr.totals td.word{text-align:right;font-family:'Helvetica Neue',Arial,sans-serif;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:#5b6b73;}
+  input[type=checkbox]{width:16px;height:16px;accent-color:var(--accent);cursor:pointer;}
+  input[type=number]{
+    width:48px;border:1px solid var(--line);border-radius:2px;
+    padding:2px 3px;text-align:center;font-family:inherit;font-size:13px;
+  }
+  .patient-grid input[type=number]{width:100%;border:none;border-bottom:1px solid var(--line);text-align:left;border-radius:0;font-size:13.5px;padding:3px 1px;}
+  select{
+    font-family:'Helvetica Neue',Arial,sans-serif;font-size:11px;border:1px solid var(--line);
+    border-radius:2px;padding:2px;max-width:150px;
+  }
+  .patient-grid select{max-width:none;width:100%;border:none;border-bottom:1px solid var(--line);font-size:13px;background:transparent;}
+  .grid-two{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+  .cat-block{margin-bottom:10px;}
+  .cat-block h4{
+    margin:0 0 4px;font-family:'Helvetica Neue',Arial,sans-serif;font-size:10.5px;
+    text-transform:uppercase;letter-spacing:.05em;color:var(--amber);
+  }
+  .word-row{display:flex;align-items:center;gap:6px;padding:2px 0;font-size:13.5px;}
+  .subtotal-line{
+    display:flex;gap:14px;align-items:center;font-family:'Helvetica Neue',Arial,sans-serif;
+    font-size:11px;color:#5b6b73;margin-top:6px;flex-wrap:wrap;
+  }
+  .subtotal-line b{color:var(--ink);font-size:13px;font-family:inherit;}
+  .wait-banner{
+    background:var(--amber-soft);border:1px dashed #c79a56;color:#7a5420;
+    font-family:'Helvetica Neue',Arial,sans-serif;font-size:11.5px;letter-spacing:.03em;
+    text-transform:uppercase;text-align:center;padding:8px;border-radius:3px;margin:16px 0;
+  }
+  .summary-table td, .summary-table th{padding:7px 10px;}
+  .summary-table td.direct{background:var(--accent-soft);font-weight:700;color:var(--accent);font-size:14px;}
+  .summary-table td.pct{font-family:'Helvetica Neue',Arial,sans-serif;font-size:12px;font-weight:600;}
+  .summary-table input{width:56px;}
+  .cls{display:inline-block;border-radius:10px;padding:1px 8px;font-family:'Helvetica Neue',Arial,sans-serif;font-size:10.5px;text-transform:uppercase;letter-spacing:.03em;}
+  .cls-Inferior{background:var(--danger-soft);color:var(--danger);}
+  .cls-Límite{background:var(--amber-soft);color:var(--amber);}
+  .cls-Medio{background:#eef0ee;color:#5b6b73;}
+  .cls-Superior{background:var(--accent-soft);color:var(--accent);}
+
+  .disc-panel{display:grid;grid-template-columns:1.3fr 1fr;gap:20px;}
+  .disc-numbers{font-family:'Helvetica Neue',Arial,sans-serif;font-size:12.5px;}
+  .disc-numbers div{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px dotted var(--line);}
+  .disc-numbers span.val{font-weight:700;color:var(--ink);}
+  .disc-formula{background:#f4f6f5;border-radius:4px;padding:12px 14px;font-family:'Helvetica Neue',Arial,sans-serif;font-size:12.5px;}
+  .disc-formula .result{font-size:28px;font-weight:700;color:var(--accent);margin-top:6px;}
+  .fp-breakdown{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;font-family:'Helvetica Neue',Arial,sans-serif;font-size:11px;}
+  .fp-chip{background:var(--danger-soft);color:var(--danger);border-radius:12px;padding:3px 9px;}
+
+  .toolbar{display:flex;gap:10px;justify-content:flex-end;margin-bottom:14px;flex-wrap:wrap;align-items:center;}
+  button{
+    font-family:'Helvetica Neue',Arial,sans-serif;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;
+    border:1px solid var(--accent);background:var(--panel);color:var(--accent);
+    padding:7px 14px;border-radius:3px;cursor:pointer;
+  }
+  button.primary{background:var(--accent);color:#fff;}
+  button.amber{border-color:var(--amber);color:var(--amber);}
+  button.amber.primary{background:var(--amber);color:#fff;}
+  button:hover{opacity:.85;}
+  button:disabled{opacity:.5;cursor:wait;}
+  .save-status{font-family:'Helvetica Neue',Arial,sans-serif;font-size:10.5px;color:#7a8890;margin-right:auto;}
+  .save-status b{color:var(--accent);font-weight:600;}
+  .note{font-family:'Helvetica Neue',Arial,sans-serif;font-size:10.5px;color:#8a969c;font-style:italic;margin-top:4px;}
+  .expected-row{display:flex;flex-wrap:wrap;gap:10px;font-family:'Helvetica Neue',Arial,sans-serif;font-size:11px;color:#5b6b73;}
+  .expected-row div{display:flex;flex-direction:column;align-items:center;gap:3px;}
+  .expected-row input{width:52px;text-align:center;}
+  .expected-row label{text-transform:uppercase;letter-spacing:.04em;font-size:9.5px;}
+  .serial-mode-row{display:flex;gap:20px;font-family:'Helvetica Neue',Arial,sans-serif;font-size:12px;color:var(--ink);margin-bottom:12px;}
+  .serial-mode-row label{display:flex;align-items:center;gap:5px;cursor:pointer;}
+  .zone-chips{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:6px;}
+  .zone-chip{flex:1;min-width:120px;border-radius:4px;padding:8px 12px;font-family:'Helvetica Neue',Arial,sans-serif;}
+  .zone-chip .zone-label{display:block;font-size:9.5px;text-transform:uppercase;letter-spacing:.05em;opacity:.75;}
+  .zone-chip .zone-value{display:block;font-size:19px;font-weight:700;margin-top:2px;}
+  .zone-primacia{background:var(--accent-soft);color:var(--accent);}
+  .zone-media{background:#eef0ee;color:#5b6b73;}
+  .zone-recencia{background:var(--amber-soft);color:var(--amber);}
+  .zone-delta{background:#f4f6f5;color:var(--ink);}
+  input.order-input{width:34px;text-align:center;border:1px solid var(--line);border-radius:2px;padding:2px 1px;font-family:'Helvetica Neue',Arial,sans-serif;font-size:12.5px;}
+  .seq-box{margin-top:10px;padding:10px 12px;background:#f4f6f5;border-radius:4px;font-family:'Helvetica Neue',Arial,sans-serif;font-size:12px;}
+  .seq-line{padding:3px 0;color:var(--ink);}
+  .seq-line b{color:var(--accent);margin-right:4px;}
+  .seq-warn{color:var(--danger);font-style:italic;}
+
+  .norm-bar{display:flex;gap:16px;align-items:flex-end;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px dotted var(--line);font-family:'Helvetica Neue',Arial,sans-serif;font-size:12px;}
+  .norm-bar select{font-size:12px;max-width:none;padding:3px 4px;}
+  .norm-bar label{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:#7a8890;margin-bottom:3px;}
+  .norm-info{color:#5b6b73;}
+  .norm-info b{color:var(--ink);}
+  .norm-warn{color:var(--danger);font-style:italic;}
+  .cfg-grid{display:grid;grid-template-columns:2fr 1fr auto;gap:10px 16px;align-items:end;margin:12px 0 4px;padding:10px 12px;background:#f4f6f5;border-radius:4px;}
+  .cfg-grid input{width:100%;border:1px solid var(--line);border-radius:2px;padding:4px 6px;font-family:'Helvetica Neue',Arial,sans-serif;font-size:12px;background:#fff;}
+  .cfg-grid .remember{font-family:'Helvetica Neue',Arial,sans-serif;font-size:11px;color:#5b6b73;display:flex;gap:5px;align-items:center;white-space:nowrap;}
+  textarea.analysis{
+    width:100%;min-height:120px;border:1px solid var(--line);border-radius:3px;padding:10px 12px;
+    font-family:inherit;font-size:13.5px;line-height:1.5;color:var(--ink);background:#fff;resize:vertical;
+  }
+  .gemini-status{font-family:'Helvetica Neue',Arial,sans-serif;font-size:11.5px;color:#5b6b73;min-height:16px;margin:6px 0;}
+  .gemini-status.err{color:var(--danger);}
+  @media print{
+    .toolbar,.cfg-grid,.no-print{display:none !important;}
+    body{padding:0;background:#fff;}
+    section{break-inside:avoid;border:1px solid #999;}
+  }
+  @media (max-width:900px){
+    .patient-grid{grid-template-columns:repeat(2,1fr);}
+    .grid-two, .disc-panel{grid-template-columns:1fr;}
+    .cfg-grid{grid-template-columns:1fr;}
+    .summary-wrap{overflow-x:auto;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Aprendizaje de Palabras — Batería Neuropsicológica en Español</h1>
+  <div class="subtitle">Artiola i Fortuny (1999), a partir del California Verbal Learning Test · Calculadora de puntuación directa · Perfiles NEURONORMA</div>
+
+  <div class="toolbar">
+    <span class="save-status" id="saveStatus">Autoguardado activo</span>
+    <button onclick="downloadProgress()">Descargar avance (.json)</button>
+    <button onclick="document.getElementById('loadFile').click()">Cargar avance</button>
+    <input type="file" id="loadFile" accept=".json,application/json" style="display:none" data-nosave onchange="loadProgressFile(this)">
+    <button onclick="exportDocx()" id="btnDocx">Exportar a Word / Docs (.docx)</button>
+    <button onclick="window.print()">Imprimir</button>
+    <button class="primary" onclick="clearAll()">Limpiar todo</button>
+  </div>
+
+  <section>
+    <h2>Datos del paciente</h2>
+    <div class="patient-grid">
+      <div><label>Nombre</label><input class="field-input" type="text" id="p-nombre"></div>
+      <div><label>Apellidos</label><input class="field-input" type="text" id="p-apellidos"></div>
+      <div><label>Expediente</label><input class="field-input" type="text" id="p-expediente"></div>
+      <div><label>Examinador(a)</label><input class="field-input" type="text" id="p-examinador"></div>
+      <div><label>Sexo</label><select id="p-sexo"><option value=""></option><option>Mujer</option><option>Hombre</option><option>Otro</option></select></div>
+      <div><label>Edad (años)</label><input type="number" min="0" max="120" id="p-edad"></div>
+      <div><label>Escolaridad (años)</label><input type="number" min="0" max="30" id="p-escolaridad"></div>
+      <div><label>Fecha de aplicación</label><input class="field-input" type="date" id="p-fecha"></div>
+    </div>
+    <div class="norm-bar">
+      <div>
+        <label>Grupo normativo NEURONORMA</label>
+        <select id="grupoNorma"></select>
+      </div>
+      <div class="norm-info" id="normInfo"></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Resumen de puntuaciones</h2>
+    <div class="summary-wrap">
+    <table class="summary-table">
+      <thead>
+        <tr><th></th><th>Lis1</th><th>LisE5</th><th>LisApr</th><th>LisB</th><th>LisCPLib</th><th>LisCPPist</th><th>LisLPLib</th><th>LisLPPist</th><th>LisDis</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="word rowlabel">Puntuación directa</td>
+          <td class="direct" id="out-Lis1">0</td>
+          <td class="direct" id="out-LisE5">0</td>
+          <td class="direct" id="out-LisApr">0</td>
+          <td class="direct" id="out-LisB">0</td>
+          <td class="direct" id="out-LisCPLib">0</td>
+          <td class="direct" id="out-LisCPPist">0</td>
+          <td class="direct" id="out-LisLPLib">0</td>
+          <td class="direct" id="out-LisLPPist">0</td>
+          <td class="direct" id="out-LisDis">0.0</td>
+        </tr>
+        <tr id="row-pct"><td class="word rowlabel">Percentil NEURONORMA</td></tr>
+        <tr id="row-cls"><td class="word rowlabel">Clasificación</td></tr>
+        <tr id="row-escala"><td class="word rowlabel">Puntuación a escala</td></tr>
+        <tr id="row-T"><td class="word rowlabel">Puntuación corregida (T)</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <div class="note">Percentil y clasificación se obtienen automáticamente de las tablas NEURONORMA del grupo seleccionado (Inferior P≤20 · Límite P30 · Medio P40–70 · Superior P≥80). Las puntuaciones a escala y T se capturan manualmente. LisApr = suma de correctas de los 5 ensayos de Lista A; LisE5 = correctas del ensayo 5.</div>
+  </section>
+
+  <section>
+    <h2>Lista A — 5 ensayos</h2>
+    <div id="tableListaA"></div>
+  </section>
+
+  <section>
+    <h2>Lista B — interferencia</h2>
+    <div id="tableListaB"></div>
+  </section>
+
+  <section>
+    <h2>Recuerdo tras interferencia — corto plazo</h2>
+    <div class="grid-two">
+      <div><h3>Recuerdo a corto plazo libre (RCPLib)</h3><div id="freeRCPL"></div></div>
+      <div><h3>Recuerdo a corto plazo facilitado por pistas (RCPPist)</h3><div id="cuedRCPP"></div></div>
+    </div>
+  </section>
+
+  <div class="wait-banner">Esperar 20 minutos antes del recuerdo a largo plazo</div>
+
+  <section>
+    <h2>Recuerdo a largo plazo</h2>
+    <div class="grid-two">
+      <div><h3>Recuerdo a largo plazo libre (RLPLib)</h3><div id="freeRLPL"></div></div>
+      <div><h3>Recuerdo a largo plazo facilitado por pistas (RLPPist)</h3><div id="cuedRLPP"></div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Reconocimiento (44 ítems)</h2>
+    <div class="note" style="margin-bottom:10px;">Marque "Sí" cuando el paciente reconozca la palabra como perteneciente a la Lista A. La categoría de cada distractor viene precargada según el protocolo cuando está confirmada en el formulario original; los ítems 32, 33, 36–38, 40, 41, 43 y 44 no traían la columna de categoría legible en el original y deben asignarse manualmente con el menú desplegable, comparando contra su hoja impresa.</div>
+    <div id="tableReconocimiento"></div>
+  </section>
+
+  <section>
+    <h2>Cálculo de discriminación</h2>
+    <div class="disc-panel">
+      <div class="disc-numbers">
+        <div>Total de respuestas correctas (aciertos, de 16)<span class="val" id="disc-hits">0</span></div>
+        <div>Fallos = 16 − aciertos<span class="val" id="disc-fallos">0</span></div>
+        <div>Total de falsos positivos (de 28)<span class="val" id="disc-fp">0</span></div>
+        <div class="fp-breakdown" id="fp-breakdown"></div>
+      </div>
+      <div class="disc-formula">
+        1 − [(Falsos positivos + Fallos) ÷ 44] × 100
+        <div class="result" id="disc-result">0.0</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Curva de aprendizaje</h2>
+    <div class="note" style="margin-bottom:10px;">
+      Valores esperados para el grupo normativo seleccionado. Use <b>Analizar con Gemini</b> para que Gemini estime la curva esperada a partir de las tablas NEURONORMA del grupo y redacte un análisis, o <b>Rellenar con P50</b> para usar directamente la mediana normativa (Ens 2–4 se interpolan, ya que NEURONORMA solo publica Ens 1, Ens 5 y el total). Puede editar cualquier valor; si deja un punto en blanco, esa parte de la línea no se dibuja.
+    </div>
+    <div id="expectedInputs" class="expected-row"></div>
+
+    <div class="cfg-grid no-print">
+      <div>
+        <label>Clave API de Gemini</label>
+        <input type="password" id="geminiKey" data-nosave placeholder="AIza…" autocomplete="off">
+      </div>
+      <div>
+        <label>Modelo</label>
+        <input type="text" id="geminiModel" data-nosave list="geminiModels" value="gemini-flash-latest">
+        <datalist id="geminiModels">
+          <option value="gemini-flash-latest"><option value="gemini-pro-latest">
+          <option value="gemini-2.5-flash"><option value="gemini-2.5-pro">
+        </datalist>
+      </div>
+      <label class="remember"><input type="checkbox" id="geminiRemember" data-nosave> Recordar clave en este navegador</label>
+    </div>
+    <div class="note no-print">La clave se usa solo desde su navegador para llamar a la API de Gemini y nunca se incluye en el archivo de avance ni en el .docx. A Gemini se envían edad, sexo, escolaridad, puntuaciones y normas; no se envían nombre, apellidos ni expediente.</div>
+
+    <div class="toolbar no-print" style="justify-content:flex-start;margin:12px 0 4px;">
+      <button class="amber primary" id="btnGemini" onclick="analyzeWithGemini()">Analizar con Gemini</button>
+      <button class="amber" onclick="fillExpectedP50(true)">Rellenar con P50 NEURONORMA</button>
+    </div>
+    <div class="gemini-status" id="geminiStatus"></div>
+
+    <canvas id="learningCanvas" width="900" height="420" style="width:100%;max-width:900px;display:block;margin:14px auto;background:#fff;border:1px solid var(--line-soft);border-radius:3px;"></canvas>
+
+    <h3>Análisis de la curva (Gemini · editable)</h3>
+    <textarea class="analysis" id="geminiAnalisis" placeholder="Aquí aparecerá el análisis generado por Gemini. Puede editarlo; se guarda con el avance y se incluye en el .docx."></textarea>
+
+    <div class="toolbar" style="justify-content:center;margin-top:12px;">
+      <button onclick="exportChart('png')">Descargar PNG (alta resolución)</button>
+      <button class="primary" onclick="exportChart('jpg')">Descargar JPG (alta resolución)</button>
+    </div>
+  </section>
+
+  <section>
+    <h2>Efecto de primacía y recencia</h2>
+    <div class="note" style="margin-bottom:10px;">
+      Curva de posición serial de Lista A: porcentaje de recuerdo por posición de palabra (1 a 16), agrupado en primacía (posiciones 1-4), zona media (5-12) y recencia (13-16). Por convención se calcula sobre el Ensayo 1, pero puede promediarse sobre los 5 ensayos.
+    </div>
+    <div class="serial-mode-row">
+      <label><input type="radio" name="serialMode" value="1" checked> Ensayo 1</label>
+      <label><input type="radio" name="serialMode" value="avg"> Promedio de los 5 ensayos</label>
+    </div>
+
+    <div class="zone-chips">
+      <div class="zone-chip zone-primacia"><span class="zone-label">Primacía (1-4)</span><span class="zone-value" id="zone-primacia">0%</span></div>
+      <div class="zone-chip zone-media"><span class="zone-label">Zona media (5-12)</span><span class="zone-value" id="zone-media">0%</span></div>
+      <div class="zone-chip zone-recencia"><span class="zone-label">Recencia (13-16)</span><span class="zone-value" id="zone-recencia">0%</span></div>
+      <div class="zone-chip zone-delta"><span class="zone-label">Δ primacía − media</span><span class="zone-value" id="zone-delta-p">0</span></div>
+      <div class="zone-chip zone-delta"><span class="zone-label">Δ recencia − media</span><span class="zone-value" id="zone-delta-r">0</span></div>
+    </div>
+
+    <canvas id="serialCanvas" width="900" height="380" style="width:100%;max-width:900px;display:block;margin:14px auto;background:#fff;border:1px solid var(--line-soft);border-radius:3px;"></canvas>
+
+    <div class="toolbar" style="justify-content:center;">
+      <button onclick="exportSerialChart('png')">Descargar PNG (alta resolución)</button>
+      <button class="primary" onclick="exportSerialChart('jpg')">Descargar JPG (alta resolución)</button>
+    </div>
+  </section>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>
+<script>
+/* ================== DATOS DEL PROTOCOLO ================== */
+const LISTA_A = ["Abuelo","Jirafa","Pierna","Cama","Hipopótamo","Sofá","Ojo","Madre","Sillón","Cebra","Tío","Mano","Armario","Pantera","Primo","Nariz"];
+const LISTA_B = ["Piano","Elefante","Camisa","Cabeza","Leopardo","Violín","Pie","Falda","Dedo","Oso","Vestido","Trompeta","Rinoceronte","Abrigo","Oreja","Tambor"];
+
+const CATEGORIAS_A = [
+  {nombre:"Animales", palabras:["Jirafa","Hipopótamo","Cebra","Pantera"]},
+  {nombre:"Familiares", palabras:["Abuelo","Madre","Tío","Primo"]},
+  {nombre:"Muebles", palabras:["Cama","Sofá","Sillón","Armario"]},
+  {nombre:"Partes del cuerpo", palabras:["Pierna","Ojo","Mano","Nariz"]}
+];
+
+const CAT_LABELS = {
+  "Diana":"Diana (Lista A)",
+  "ListaB-comun":"Lista B · categoría común",
+  "ListaB-otra":"Lista B · otra categoría",
+  "Prototipo":"Prototipo",
+  "Fonetica":"Similitud fonética",
+  "SinRelacion":"Sin relación"
+};
+
+const RECON_ITEMS = [
+ {n:1,w:"Primo",c:"Diana"},{n:2,w:"Oreja",c:"ListaB-comun"},{n:3,w:"Violín",c:"ListaB-otra"},
+ {n:4,w:"Jabón",c:"SinRelacion"},{n:5,w:"Lombriz",c:"Fonetica"},{n:6,w:"Padre",c:"Prototipo"},
+ {n:7,w:"Armario",c:"Diana"},{n:8,w:"Árbol",c:"SinRelacion"},{n:9,w:"Primor",c:"Fonetica"},
+ {n:10,w:"Ojo",c:"Diana"},{n:11,w:"Jirafa",c:"Diana"},{n:12,w:"Abrigo",c:"ListaB-otra"},
+ {n:13,w:"Elefante",c:"ListaB-comun"},{n:14,w:"Coma",c:"Fonetica"},{n:15,w:"Abuelo",c:"Diana"},
+ {n:16,w:"Libro",c:"SinRelacion"},{n:17,w:"Hipopótamo",c:"Diana"},{n:18,w:"Película",c:"SinRelacion"},
+ {n:19,w:"Ajo",c:"Fonetica"},{n:20,w:"Pierna",c:"Diana"},{n:21,w:"Cuchara",c:"SinRelacion"},
+ {n:22,w:"Brazo",c:"Prototipo"},{n:23,w:"Sillón",c:"Diana"},{n:24,w:"Tambor",c:"Prototipo"},
+ {n:25,w:"Madre",c:"Diana"},{n:26,w:"Cantera",c:"Fonetica"},{n:27,w:"Pie",c:"ListaB-comun"},
+ {n:28,w:"Cebra",c:"Diana"},{n:29,w:"Aspirina",c:"SinRelacion"},{n:30,w:"Mano",c:"Diana"},
+ {n:31,w:"Cama",c:"Diana"},{n:32,w:"Tigre",c:""},{n:33,w:"Hipódromo",c:""},
+ {n:34,w:"Tío",c:"Diana"},{n:35,w:"Pantera",c:"Diana"},{n:36,w:"Oso",c:""},
+ {n:37,w:"Piedra",c:""},{n:38,w:"Pimienta",c:""},{n:39,w:"Nariz",c:"Diana"},
+ {n:40,w:"Camisa",c:""},{n:41,w:"Mesa",c:""},{n:42,w:"Sofá",c:"Diana"},
+ {n:43,w:"Lío",c:""},{n:44,w:"Serrucho",c:""}
+];
+
+/* ================== NORMAS NEURONORMA ==================
+   Fuente: perfiles_enba_neuronorma.xlsx. Cada fila: valores para P10,P20,P30,P40,P50,P60,P70,P80,P90,P95.
+   G9 (76-82) y G10 (83-91) están vacíos en el archivo; según su nota, sus casos se incluyen en G8. */
+const NORMAS = [{"id": "G1", "rango": "18-26", "tabla": {"Lis1": ["6", null, "7", null, null, "8", "9", null, "10", "≥11"], "LisE5": ["12", null, "13", "14", null, "15", null, "16", null, null], "LisApr": ["50", "51-54", "55", "56-57", "58-61", "62", "63-64", "65-66", "67-68", "≥69"], "LisB": ["4", null, "5", "6", null, "7", null, "8", "9-11", "≥12"], "LisCPLib": ["11", "12", null, "13", "14", null, "15", null, null, "16"], "LisCPPist": ["12", "13", "14", null, null, "15", null, null, null, "16"], "LisLPLib": ["10", "12", "13", "14", null, null, "15", null, null, "16"], "LisLPPist": ["12", null, "13", "14", null, "15", null, null, null, "16"], "LisDis": ["89", "90-91", "92-94", "95", "96-98", null, null, null, "99", "100"]}, "n": 79, "edadM": 23.7, "edadDE": 2.9, "escM": 15.6, "escDE": 2.6}, {"id": "G2", "rango": "27-33", "tabla": {"Lis1": ["5", "6", "7", null, null, "8-9", null, "10", "11", "≥12"], "LisE5": ["10", "11-12", "13-14", null, "15", null, null, "16", null, null], "LisApr": ["49", "50-54", "55-57", "58-61", "62-63", "64", "65", "66-67", "68-70", "≥71"], "LisB": ["4", "5", null, "6", null, "7", "8", null, "9-11", "≥12"], "LisCPLib": ["11", "12", null, "13", "14", "15", null, null, null, "16"], "LisCPPist": ["12", "13", "14", null, "15", null, "16", null, null, null], "LisLPLib": ["10", "11-12", "13", "14", "15", null, null, "16", null, null], "LisLPPist": ["12", "13", "14", null, "15", null, "16", null, null, null], "LisDis": ["90", "91", "92-93", "94-95", "96-98", null, "99-100", null, null, null]}, "n": 62, "edadM": 28.2, "edadDE": 3.2, "escM": 17.1, "escDE": 3.1}, {"id": "G3", "rango": "34-40", "tabla": {"Lis1": ["6", null, "7", null, null, "8", "9", "10", null, "≥11"], "LisE5": ["10", "12", "13", "14", "15", null, null, "16", null, null], "LisApr": ["48", "49-54", "55-57", "58", "59", "60-66", null, "67", "68", "≥69"], "LisB": ["4", "5", "6", null, "7", null, "8", null, "9-10", "≥11"], "LisCPLib": ["11", "12", null, null, "13-14", null, "15", "16", null, null], "LisCPPist": ["11", "9-10", null, "11-14", "15", null, "16", null, null, null], "LisLPLib": ["11", "12", "13", null, "14", "15", null, "16", null, null], "LisLPPist": ["11", "12", "13-14", null, "15", null, "16", null, null, null], "LisDis": ["91", "92-93", "94-95", null, "96-98", "100", null, null, null, null]}, "n": 31, "edadM": 33.4, "edadDE": 3.6, "escM": 17.4, "escDE": 3.0}, {"id": "G4", "rango": "41-47", "tabla": {"Lis1": ["5", "6", "7", null, null, "8", null, "9", "≥10", null], "LisE5": ["11", "12", "13", null, "14", null, "15", null, "16", null], "LisApr": ["45", "46-49", "50-53", "54-57", "58", "59-61", "62", "63-65", "66-68", "≥69"], "LisB": ["3", "4", null, "5", null, "6", "7", null, "8", "≥9"], "LisCPLib": ["8", "9-11", null, "12-13", null, "14-15", null, null, "16", null], "LisCPPist": ["10", "11-12", null, "13", null, "14-15", null, "16", null, null], "LisLPLib": ["9", "10-11", "12", "13", null, "14", "15", null, "16", null], "LisLPPist": ["10", "11", "12", "13", null, "14", "15", null, "16", null], "LisDis": ["86", "87-89", "90-92", "93-95", "96-98", null, "99-100", null, null, null]}, "n": 17, "edadM": 43.41, "edadDE": 4.9, "escM": 14.5, "escDE": 3.2}, {"id": "G5", "rango": "48-54", "tabla": {"Lis1": ["4", "5", "6", null, null, "7", "8", null, "9-10", "≥11"], "LisE5": ["11", null, "12", null, "13", null, "14", null, "15-16", null], "LisApr": ["41", "42-46", "47-49", "50", "51-55", "56", "57-60", "61-64", "65-68", "≥69"], "LisB": ["3", "4", "5", null, "6", "7", null, "8", "9-10", "≥11"], "LisCPLib": ["8", "9", "10", "11", null, "12", "13", "14", "15", "16"], "LisCPPist": ["8", "9-10", "11", "12", "13", null, "14", "15", "16", null], "LisLPLib": ["8", "9-10", "11", "12", "13", null, "14", "15", "16", null], "LisLPPist": ["10", "11", null, "12", "13", "14", null, "15", "16", null], "LisDis": ["86", "87-89", "90-91", null, "92-93", "94-96", "97-98", "99-100", null, null]}, "edadM": 52.5, "edadDE": 3.7, "escM": 13.6, "escDE": 3.6}, {"id": "G6", "rango": "55-61", "tabla": {"Lis1": ["4", null, "5", "6", null, "7", "8", null, "9-10", "≥11"], "LisE5": ["11", null, "12", null, "13", null, "14", "15", "16", null], "LisApr": ["41", "42-43", "44-48", "49-50", "51-54", "55-57", "58-60", "61-62", "63-65", "≥66"], "LisB": ["3", "4", "5", null, "6", null, "7", "8", "9-10", "≥11"], "LisCPLib": ["8", "9", "10", "11", "12", null, "13", "14", "15", "16"], "LisCPPist": ["9", "10", "11", "12", "13", "14", null, "15", "16", null], "LisLPLib": ["8", "9-10", "11", "12", "13", null, "14", "15", null, "16"], "LisLPPist": ["10", null, "11-12", "13", null, "14", null, "15", null, "16"], "LisDis": ["86", "91-92", null, "93", null, "94-95", "96-98", null, "99-100", null]}, "n": 58, "edadM": 58.6, "edadDE": 4.1, "escM": 13.4, "escDE": 4.1}, {"id": "G7", "rango": "62-68", "tabla": {"Lis1": ["4", null, "5", "6", null, "7", null, "8-9", "10", "≥11"], "LisE5": ["10", "11", "12", null, "13", "14", null, "15", null, "16"], "LisApr": ["40", "41-43", "44-47", "48-50", "51-55", "56-57", "58-60", "61-62", "63-65", "≥66"], "LisB": ["3", "4", null, "5", null, "6", null, "7", "8", "9"], "LisCPLib": ["8", "9", "10", "11", "12", null, "13", "14", "15", "16"], "LisCPPist": ["9", "10-11", null, "12", null, "13", "14", "15", "16", null], "LisLPLib": ["9", "10", "11", null, "12-13", null, "14", null, "15", "16"], "LisLPPist": ["8", "9-10", "11", "12", null, "13", "14", null, "15", "16"], "LisDis": ["86", "87-89", "90-91", "92-93", null, null, "94-95", "96-98", "≥99", null]}, "n": 53, "edadM": 64.1, "edadDE": 3.7, "escM": 13.4, "escDE": 4.1}, {"id": "G8", "rango": "69-75", "tabla": {"Lis1": ["3", "4", "5", null, "6", "7", null, null, "8-10", "≥11"], "LisE5": ["10", "11", null, null, "12", "13", "14-15", null, null, "16"], "LisApr": ["38", "39-41", "42-44", "45-47", "48-49", "50-52", "53-56", "57-59", "60-66", "≥67"], "LisB": ["3", null, "4", null, "5", null, null, null, "6-7", "≥8"], "LisCPLib": ["7", "8", null, "9", "10", "11", "12", "13", "14-15", "16"], "LisCPPist": ["8", "9-10", null, "11", "12", "13", "14", null, "15", "16"], "LisLPLib": ["2", "3-7", "8-9", "10", "11", "12", "13", null, "14", "15-16"], "LisLPPist": ["7", "8", "9", "10", "11-12", null, "13", "14", null, "15-16"], "LisDis": ["81", "82-85", "86-89", null, "90-93", null, null, "94", "95-98", "≥99"]}, "n": 37, "edadM": 72.4, "edadDE": 5.0, "escM": 14.2, "escDE": 4.0}];
+const PCTS = [10,20,30,40,50,60,70,80,90,95];
+const SCORE_KEYS = ["Lis1","LisE5","LisApr","LisB","LisCPLib","LisCPPist","LisLPLib","LisLPPist","LisDis"];
+
+function parseCell(s){
+  if(s === null || s === undefined) return null;
+  s = String(s).trim().replace(',', '.');
+  let m;
+  if((m = s.match(/^[≥>]\s*(\d+(?:\.\d+)?)$/))) return [+m[1], Infinity];
+  if((m = s.match(/^[≤<]\s*(\d+(?:\.\d+)?)$/))) return [-Infinity, +m[1]];
+  if((m = s.match(/^(\d+(?:\.\d+)?)\s*-\s*(\d+(?:\.\d+)?)$/))) return [+m[1], +m[2]];
+  if((m = s.match(/^(\d+(?:\.\d+)?)$/))) return [+m[1], +m[1]];
+  return null;
+}
+
+function parsedRow(row){
+  const defs = [];
+  row.forEach((c,i)=>{ const r = parseCell(c); if(r) defs.push({i, p:PCTS[i], lo:r[0], hi:r[1]}); });
+  if(defs.length){
+    if(defs[0].i === 0 && isFinite(defs[0].lo)) defs[0].lo = -Infinity;   // P10: "valor o menos"
+    defs[defs.length-1].hi = Infinity;                                    // último: "valor o más"
+  }
+  return defs;
+}
+
+function percentileFor(row, x){
+  if(!row || x === null || isNaN(x)) return null;
+  const defs = parsedRow(row);
+  if(!defs.length) return null;
+  const inRange = defs.filter(d=> x >= d.lo && x <= d.hi);
+  let p;
+  if(inRange.length) p = Math.max(...inRange.map(d=>d.p));
+  else {
+    const below = defs.filter(d=> d.hi < x);
+    p = below.length ? Math.max(...below.map(d=>d.p)) : defs[0].p;
+  }
+  return p;
+}
+function pctLabel(p){ return p === null ? '—' : (p === 10 ? 'P≤10' : (p === 95 ? 'P≥95' : 'P' + p)); }
+function classify(p){
+  if(p === null) return '';
+  if(p <= 20) return 'Inferior';
+  if(p <= 30) return 'Límite';
+  if(p <= 70) return 'Medio';
+  return 'Superior';
+}
+function repValue(d){
+  if(!isFinite(d.lo)) return d.hi;
+  if(!isFinite(d.hi)) return d.lo;
+  return (d.lo + d.hi) / 2;
+}
+/* Valor representativo en un percentil (por defecto P50), interpolando si la celda está vacía */
+function valueAtPct(row, idx=4){
+  if(!row) return null;
+  const vals = row.map(c=>{ const r = parseCell(c); return r ? repValue({lo:r[0],hi:r[1]}) : null; });
+  if(vals[idx] !== null) return vals[idx];
+  let l = idx-1; while(l>=0 && vals[l]===null) l--;
+  let r = idx+1; while(r<vals.length && vals[r]===null) r++;
+  if(l>=0 && r<vals.length) return vals[l] + (vals[r]-vals[l]) * (idx-l)/(r-l);
+  if(l>=0) return vals[l];
+  if(r<vals.length) return vals[r];
+  return null;
+}
+
+function currentGroup(){
+  const id = document.getElementById('grupoNorma').value;
+  return NORMAS.find(g=>g.id === id) || null;
+}
+function groupForAge(age){
+  if(age === null || isNaN(age)) return null;
+  if(age < 18) return null;
+  for(const g of NORMAS){
+    const [a,b] = g.rango.split('-').map(Number);
+    if(age >= a && age <= b) return g.id;
+  }
+  return age > 75 ? 'G8' : null;
+}
+
+function buildGroupSelect(){
+  const sel = document.getElementById('grupoNorma');
+  sel.innerHTML = '<option value="">— seleccionar —</option>' + NORMAS.map(g=>
+    `<option value="${g.id}">${g.id} · ${g.rango} años${g.n ? ' (n=' + g.n + ')' : ''}${g.id==='G8' ? ' · incluye ≥76' : ''}</option>`
+  ).join('');
+}
+
+function updateNormInfo(){
+  const g = currentGroup();
+  const box = document.getElementById('normInfo');
+  const age = parseFloat(document.getElementById('p-edad').value);
+  const esc = parseFloat(document.getElementById('p-escolaridad').value);
+  if(!g){
+    box.innerHTML = (!isNaN(age) && age < 18)
+      ? '<span class="norm-warn">NEURONORMA no tiene normas para menores de 18 años.</span>'
+      : 'Capture la edad para seleccionar automáticamente el grupo.';
+    return;
+  }
+  let html = `Muestra del grupo: edad <b>${g.edadM} (±${g.edadDE})</b> · escolaridad <b>${g.escM} (±${g.escDE})</b> años${g.n ? ' · n=' + g.n : ''}.`;
+  const warns = [];
+  const [a,b] = g.rango.split('-').map(Number);
+  if(!isNaN(age) && (age < a || age > b)){
+    warns.push(age > 75 && g.id === 'G8'
+      ? 'Edad ≥76: los grupos 9 y 10 aún no tienen normas propias; se usa G8, que ya incluye esos casos.'
+      : `La edad (${age}) está fuera del rango del grupo seleccionado.`);
+  }
+  if(!isNaN(esc)){
+    const z = (esc - g.escM) / g.escDE;
+    if(Math.abs(z) > 1) warns.push(`La escolaridad (${esc} años) está a ${z>0?'+':''}${z.toFixed(1)} DE de la media del grupo; interprete los percentiles con cautela${z<0 ? ' (posible subestimación del rendimiento)' : ''}.`);
+  }
+  if(warns.length) html += '<br><span class="norm-warn">' + warns.join(' ') + '</span>';
+  box.innerHTML = html;
+}
+
+/* ================== CONSTRUCCIÓN DE TABLAS ================== */
+function buildSummaryRows(){
+  const pct = document.getElementById('row-pct');
+  const cls = document.getElementById('row-cls');
+  const esc = document.getElementById('row-escala');
+  const T = document.getElementById('row-T');
+  SCORE_KEYS.forEach(k=>{
+    pct.insertAdjacentHTML('beforeend', `<td class="pct" id="pct-${k}">—</td>`);
+    cls.insertAdjacentHTML('beforeend', `<td id="cls-${k}"></td>`);
+    esc.insertAdjacentHTML('beforeend', `<td><input type="number" id="esc-${k}"></td>`);
+    T.insertAdjacentHTML('beforeend', `<td><input type="number" id="T-${k}"></td>`);
+  });
+}
+
+function buildEnsayosTable(containerId, palabras, numEnsayos, prefix){
+  let head = '<tr><th class="word">Lista</th>';
+  for(let e=1;e<=numEnsayos;e++) head += `<th>Ens ${e}</th>`;
+  head += '</tr>';
+  let rows = '';
+  palabras.forEach((p,i)=>{
+    rows += `<tr><td class="word">${i+1}. ${p}</td>`;
+    for(let e=1;e<=numEnsayos;e++){
+      rows += `<td><input type="number" class="order-input" min="1" max="16" step="1" placeholder="—" data-block="${prefix}" data-col="${e}" data-row="${i}"></td>`;
+    }
+    rows += '</tr>';
+  });
+  let correctas = '<tr class="totals"><td class="word">Correctas</td>';
+  for(let e=1;e<=numEnsayos;e++) correctas += `<td id="${prefix}-correctas-${e}">0</td>`;
+  correctas += '</tr>';
+  let perse = '<tr><td class="word">Perseveraciones</td>';
+  for(let e=1;e<=numEnsayos;e++) perse += `<td><input type="number" min="0" data-block="${prefix}" data-perse="${e}"></td>`;
+  perse += '</tr>';
+  let intr = '<tr><td class="word">Intrusiones</td>';
+  for(let e=1;e<=numEnsayos;e++) intr += `<td><input type="number" min="0" data-block="${prefix}" data-intr="${e}"></td>`;
+  intr += '</tr>';
+  document.getElementById(containerId).innerHTML =
+    `<table><thead>${head}</thead><tbody>${rows}${correctas}${perse}${intr}</tbody></table>
+     <div class="note" style="margin-top:6px;">Escriba en cada celda el número de orden en que el paciente dijo esa palabra dentro del ensayo (1, 2, 3...); deje en blanco si no la recordó. No importa si hay huecos, solo el orden relativo entre las palabras dichas.</div>
+     <div class="seq-box" id="${prefix}-sequences"></div>`;
+}
+
+function getSequences(prefix, palabras, numEnsayos){
+  const out = [];
+  for(let e=1;e<=numEnsayos;e++){
+    const entries = []; const seen = {}; let hasDup = false;
+    palabras.forEach((p,i)=>{
+      const inp = document.querySelector(`input[data-block="${prefix}"][data-col="${e}"][data-row="${i}"]`);
+      if(inp && inp.value !== ''){
+        const val = parseFloat(inp.value);
+        if(seen[val]) hasDup = true;
+        seen[val] = true;
+        entries.push({val, word:p});
+      }
+    });
+    entries.sort((a,b)=>a.val-b.val);
+    out.push({e, text: entries.length ? entries.map(x=>x.word).join(' → ') : '(sin datos)', hasDup});
+  }
+  return out;
+}
+
+function renderRecallSequences(prefix, palabras, numEnsayos){
+  const box = document.getElementById(`${prefix}-sequences`);
+  if(!box) return;
+  box.innerHTML = getSequences(prefix, palabras, numEnsayos).map(s=>
+    `<div class="seq-line"><b>Ens ${s.e}:</b> ${s.text}${s.hasDup ? ' <span class="seq-warn">· hay números de orden repetidos</span>' : ''}</div>`
+  ).join('');
+}
+
+function buildFreeRecallTable(containerId, palabras, prefix){
+  let rows = palabras.map((p,i)=>
+    `<div class="word-row"><input type="checkbox" data-block="${prefix}" data-word="${p}"> ${i+1}. ${p}</div>`
+  ).join('');
+  document.getElementById(containerId).innerHTML =
+    rows +
+    `<div class="subtotal-line">
+       <span>Correctas: <b id="${prefix}-correctas">0</b> / 16</span>
+       Perseveraciones <input type="number" min="0" data-persetotal="${prefix}" style="width:44px">
+       Intrusiones <input type="number" min="0" data-intrtotal="${prefix}" style="width:44px">
+     </div>`;
+}
+
+function buildCuedRecallTable(containerId, categorias, prefix){
+  let html = '';
+  categorias.forEach(cat=>{
+    html += `<div class="cat-block"><h4>${cat.nombre}</h4>`;
+    cat.palabras.forEach(p=>{
+      html += `<div class="word-row"><input type="checkbox" data-block="${prefix}" data-word="${p}"> ${p}</div>`;
+    });
+    html += '</div>';
+  });
+  html += `<div class="subtotal-line">
+       <span>Correctas: <b id="${prefix}-correctas">0</b> / 16</span>
+       Perseveraciones <input type="number" min="0" data-persetotal="${prefix}" style="width:44px">
+       Intrusiones <input type="number" min="0" data-intrtotal="${prefix}" style="width:44px">
+     </div>`;
+  document.getElementById(containerId).innerHTML = html;
+}
+
+function buildRecognitionTable(){
+  let head = '<tr><th>Ítem</th><th class="word">Palabra</th><th>Sí</th><th>Categoría</th></tr>';
+  let rows = RECON_ITEMS.map(it=>{
+    let opts = Object.keys(CAT_LABELS).map(k=>
+      `<option value="${k}" ${k===it.c?'selected':''}>${CAT_LABELS[k]}</option>`
+    ).join('');
+    return `<tr>
+      <td>${it.n}</td>
+      <td class="word">${it.w}</td>
+      <td><input type="checkbox" class="recon-si" data-n="${it.n}"></td>
+      <td><select class="recon-cat" data-n="${it.n}"><option value="">— seleccionar —</option>${opts}</select></td>
+    </tr>`;
+  }).join('');
+  document.getElementById('tableReconocimiento').innerHTML =
+    `<table><thead>${head}</thead><tbody>${rows}</tbody></table>`;
+}
+
+buildGroupSelect();
+buildSummaryRows();
+buildEnsayosTable('tableListaA', LISTA_A, 5, 'A');
+buildEnsayosTable('tableListaB', LISTA_B, 1, 'B');
+buildFreeRecallTable('freeRCPL', LISTA_A, 'RCPL');
+buildCuedRecallTable('cuedRCPP', CATEGORIAS_A, 'RCPP');
+buildFreeRecallTable('freeRLPL', LISTA_A, 'RLPL');
+buildCuedRecallTable('cuedRLPP', CATEGORIAS_A, 'RLPP');
+buildRecognitionTable();
+
+/* ================== CÁLCULOS ================== */
+function recalcEnsayos(prefix, numEnsayos, palabras){
+  for(let e=1;e<=numEnsayos;e++){
+    const inputs = document.querySelectorAll(`input.order-input[data-block="${prefix}"][data-col="${e}"]`);
+    let count = 0;
+    inputs.forEach(inp=>{ if(inp.value !== '') count++; });
+    const cell = document.getElementById(`${prefix}-correctas-${e}`);
+    if(cell) cell.textContent = count;
+  }
+  if(palabras) renderRecallSequences(prefix, palabras, numEnsayos);
+}
+
+function recalcFree(prefix){
+  const boxes = document.querySelectorAll(`input[type=checkbox][data-block="${prefix}"]`);
+  let count = 0;
+  boxes.forEach(b=>{ if(b.checked) count++; });
+  const cell = document.getElementById(`${prefix}-correctas`);
+  if(cell) cell.textContent = count;
+  return count;
+}
+
+let lastRecon = null;
+function recalcRecognition(){
+  let hits = 0;
+  const fpByCat = {"ListaB-comun":0,"ListaB-otra":0,"Prototipo":0,"Fonetica":0,"SinRelacion":0};
+  document.querySelectorAll('.recon-si').forEach(box=>{
+    const n = box.dataset.n;
+    const sel = document.querySelector(`.recon-cat[data-n="${n}"]`);
+    const cat = sel ? sel.value : '';
+    if(box.checked){
+      if(cat === 'Diana') hits++;
+      else if(fpByCat.hasOwnProperty(cat)) fpByCat[cat]++;
+    }
+  });
+  const fpTotal = Object.values(fpByCat).reduce((a,b)=>a+b,0);
+  const fallos = 16 - hits;
+  const discriminacion = (1 - ((fpTotal + fallos) / 44)) * 100;
+
+  document.getElementById('disc-hits').textContent = hits;
+  document.getElementById('disc-fallos').textContent = fallos;
+  document.getElementById('disc-fp').textContent = fpTotal;
+  document.getElementById('disc-result').textContent = discriminacion.toFixed(1);
+
+  document.getElementById('fp-breakdown').innerHTML = Object.keys(FP_CHIPS).map(k=>{
+    const [label,max] = FP_CHIPS[k];
+    return `<span class="fp-chip">${label}: ${fpByCat[k]}/${max}</span>`;
+  }).join('');
+
+  lastRecon = {hits, fallos, fpTotal, fpByCat, discriminacion};
+  return lastRecon;
+}
+const FP_CHIPS = {
+  "ListaB-comun":["Lista B categ. común",4],
+  "ListaB-otra":["Lista B otra categ.",4],
+  "Prototipo":["Prototipo",4],
+  "Fonetica":["Similitud fonética",8],
+  "SinRelacion":["Sin relación",8]
+};
+
+function getScores(){
+  const n = id => parseInt(document.getElementById(id).textContent) || 0;
+  let sumA = 0;
+  for(let e=1;e<=5;e++) sumA += n(`A-correctas-${e}`);
+  return {
+    Lis1: n('A-correctas-1'), LisE5: n('A-correctas-5'), LisApr: sumA, LisB: n('B-correctas-1'),
+    LisCPLib: n('RCPL-correctas'), LisCPPist: n('RCPP-correctas'),
+    LisLPLib: n('RLPL-correctas'), LisLPPist: n('RLPP-correctas'),
+    LisDis: lastRecon ? +lastRecon.discriminacion.toFixed(1) : 0
+  };
+}
+
+let lastNorm = {};
+function recalcAll(){
+  recalcEnsayos('A',5,LISTA_A);
+  recalcEnsayos('B',1,LISTA_B);
+  ['RCPL','RCPP','RLPL','RLPP'].forEach(recalcFree);
+  recalcRecognition();
+  const s = getScores();
+  SCORE_KEYS.forEach(k=>{
+    document.getElementById('out-'+k).textContent = k === 'LisDis' ? s[k].toFixed(1) : s[k];
+  });
+  const g = currentGroup();
+  lastNorm = {};
+  SCORE_KEYS.forEach(k=>{
+    const p = g ? percentileFor(g.tabla[k], s[k]) : null;
+    const c = classify(p);
+    lastNorm[k] = {p, label: pctLabel(p), cls: c};
+    document.getElementById('pct-'+k).textContent = g ? pctLabel(p) : '—';
+    document.getElementById('cls-'+k).innerHTML = c ? `<span class="cls cls-${c}">${c}</span>` : '';
+  });
+  updateNormInfo();
+}
+
+/* ================== CURVA DE APRENDIZAJE ================== */
+const CURVE_LABELS = ["Ens 1","Ens 2","Ens 3","Ens 4","Ens 5","Lista B","RCP Lib","RCP Pist","RLP Lib","RLP Pist"];
+
+function buildExpectedInputs(){
+  document.getElementById('expectedInputs').innerHTML = CURVE_LABELS.map((lab,i)=>
+    `<div><label>${lab}</label><input type="number" min="0" max="16" step="0.1" class="expected-input" data-idx="${i}" id="exp-${i}"></div>`
+  ).join('');
+}
+buildExpectedInputs();
+
+function getObtainedCurve(){
+  const ens = [];
+  for(let e=1;e<=5;e++) ens.push(parseInt(document.getElementById(`A-correctas-${e}`).textContent)||0);
+  const s = getScores();
+  return [...ens, s.LisB, s.LisCPLib, s.LisCPPist, s.LisLPLib, s.LisLPPist];
+}
+
+function getExpectedCurve(){
+  const arr = new Array(10).fill(null);
+  document.querySelectorAll('.expected-input').forEach(inp=>{
+    const idx = parseInt(inp.dataset.idx);
+    if(inp.value !== '') arr[idx] = parseFloat(inp.value);
+  });
+  return arr;
+}
+
+/* Curva esperada determinista a partir de P50 del grupo */
+function p50Curve(g){
+  const t = g.tabla;
+  const r1 = v => v === null ? null : Math.round(v*10)/10;
+  const e1 = valueAtPct(t.Lis1), e5 = valueAtPct(t.LisE5), tot = valueAtPct(t.LisApr);
+  let mids = [null,null,null];
+  if(e1 !== null && e5 !== null){
+    const w = [0.45, 0.72, 0.9];                // forma de aprendizaje negativamente acelerada
+    mids = w.map(x=> e1 + (e5 - e1) * x);
+    if(tot !== null){
+      const adj = (tot - e1 - e5 - mids.reduce((a,b)=>a+b,0)) / 3;
+      mids = mids.map(v=> Math.min(Math.max(v + adj, e1), e5));
+    }
+  }
+  return [e1, ...mids, e5, valueAtPct(t.LisB), valueAtPct(t.LisCPLib), valueAtPct(t.LisCPPist), valueAtPct(t.LisLPLib), valueAtPct(t.LisLPPist)].map(r1);
+}
+
+function setExpected(arr){
+  arr.forEach((v,i)=>{
+    const inp = document.getElementById('exp-'+i);
+    if(inp) inp.value = (v === null || v === undefined || isNaN(v)) ? '' : Math.round(Math.min(Math.max(v,0),16)*10)/10;
+  });
+  onAnyChange();
+}
+
+function fillExpectedP50(ask){
+  const g = currentGroup();
+  if(!g){ alert('Seleccione primero un grupo normativo (capture la edad).'); return; }
+  const hasData = getExpectedCurve().some(v=>v!==null);
+  if(ask && hasData && !confirm('¿Reemplazar los valores esperados actuales por la mediana (P50) del grupo ' + g.id + '?')) return;
+  setExpected(p50Curve(g));
+  setGeminiStatus('Valores esperados = P50 NEURONORMA del grupo ' + g.id + ' (Ens 2–4 interpolados).');
+}
+
+function renderChart(ctx, w, h, obtained, expected, labels){
+  ctx.clearRect(0,0,w,h);
+  ctx.fillStyle = '#fbfaf7';
+  ctx.fillRect(0,0,w,h);
+
+  const padL = 46, padR = 20, padT = 44, padB = 56;
+  const plotW = w - padL - padR;
+  const plotH = h - padT - padB;
+  const maxY = 16;
+  const n = labels.length;
+  const xStep = plotW / (n - 1);
+  const xAt = i => padL + i * xStep;
+  const yAt = v => padT + plotH - (v / maxY) * plotH;
+
+  ctx.fillStyle = '#1c2a33';
+  ctx.font = '600 15px Georgia, serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('Curva de aprendizaje — Aprendizaje de Palabras', padL, 22);
+
+  ctx.strokeStyle = '#e2e7e9';
+  ctx.fillStyle = '#7a8890';
+  ctx.font = '10px Helvetica, Arial, sans-serif';
+  ctx.textAlign = 'right';
+  ctx.lineWidth = 1;
+  for(let v=0; v<=maxY; v+=2){
+    const y = yAt(v);
+    ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(w - padR, y); ctx.stroke();
+    ctx.fillText(String(v), padL - 8, y + 3);
+  }
+
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#5b6b73';
+  labels.forEach((lab,i)=>{ ctx.fillText(lab, xAt(i), h - padB + 16); });
+
+  function drawSeries(data, color, dashed){
+    ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = 2.4;
+    ctx.setLineDash(dashed ? [6,4] : []);
+    let started = false;
+    ctx.beginPath();
+    data.forEach((v,i)=>{
+      if(v === null || v === undefined || isNaN(v)){ started = false; return; }
+      const x = xAt(i), y = yAt(v);
+      if(!started){ ctx.moveTo(x,y); started = true; } else { ctx.lineTo(x,y); }
+    });
+    ctx.stroke();
+    ctx.setLineDash([]);
+    data.forEach((v,i)=>{
+      if(v === null || v === undefined || isNaN(v)) return;
+      ctx.beginPath(); ctx.arc(xAt(i), yAt(v), 3.6, 0, Math.PI*2); ctx.fill();
+    });
+  }
+  drawSeries(expected, '#a9752c', true);
+  drawSeries(obtained, '#3d6b70', false);
+
+  const legendY = padT - 22;
+  ctx.font = '11px Helvetica, Arial, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.strokeStyle = '#3d6b70'; ctx.fillStyle = '#3d6b70';
+  ctx.lineWidth = 2.4; ctx.setLineDash([]);
+  ctx.beginPath(); ctx.moveTo(w-260, legendY); ctx.lineTo(w-232, legendY); ctx.stroke();
+  ctx.fillText('Obtenido', w-226, legendY+4);
+  ctx.strokeStyle = '#a9752c'; ctx.fillStyle = '#a9752c';
+  ctx.setLineDash([6,4]);
+  ctx.beginPath(); ctx.moveTo(w-150, legendY); ctx.lineTo(w-122, legendY); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillText('Esperado', w-116, legendY+4);
+}
+
+function drawScreenChart(){
+  const canvas = document.getElementById('learningCanvas');
+  renderChart(canvas.getContext('2d'), canvas.width, canvas.height, getObtainedCurve(), getExpectedCurve(), CURVE_LABELS);
+}
+
+function chartToCanvas(kind, scale){
+  const isSerial = kind === 'serial';
+  const w = 900, h = isSerial ? 380 : 420;
+  const c = document.createElement('canvas');
+  c.width = w * scale; c.height = h * scale;
+  const ctx = c.getContext('2d');
+  ctx.scale(scale, scale);
+  if(isSerial) renderSerialChart(ctx, w, h, computeSerialPosition(getSerialMode()));
+  else renderChart(ctx, w, h, getObtainedCurve(), getExpectedCurve(), CURVE_LABELS);
+  return c;
+}
+
+function downloadDataUrl(dataUrl, name){
+  const a = document.createElement('a');
+  a.href = dataUrl; a.download = name;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+}
+
+function exportChart(format){
+  const c = chartToCanvas('learning', 3);
+  downloadDataUrl(c.toDataURL(format === 'png' ? 'image/png' : 'image/jpeg', format === 'jpg' ? 0.98 : undefined),
+    `curva_aprendizaje_palabras.${format === 'png' ? 'png' : 'jpg'}`);
+}
+
+/* ================== POSICIÓN SERIAL ================== */
+function getSerialMode(){
+  const sel = document.querySelector('input[name="serialMode"]:checked');
+  return sel ? sel.value : '1';
+}
+
+function computeSerialPosition(mode){
+  const results = [];
+  for(let i=0;i<16;i++){
+    let correct = 0, total = 0;
+    const ensayos = mode === '1' ? [1] : [1,2,3,4,5];
+    ensayos.forEach(e=>{
+      const inp = document.querySelector(`input[data-block="A"][data-col="${e}"][data-row="${i}"]`);
+      if(inp && inp.value !== '') correct++;
+      total++;
+    });
+    results.push({pos:i+1, word:LISTA_A[i], pct: total ? (correct/total*100) : 0});
+  }
+  return results;
+}
+
+function zoneAverage(results, startPos, endPos){
+  const subset = results.filter(r=>r.pos>=startPos && r.pos<=endPos);
+  if(!subset.length) return 0;
+  return subset.reduce((s,r)=>s+r.pct,0) / subset.length;
+}
+
+function getZones(){
+  const results = computeSerialPosition(getSerialMode());
+  const primacia = zoneAverage(results,1,4), media = zoneAverage(results,5,12), recencia = zoneAverage(results,13,16);
+  const fmt = d => (d >= 0 ? '+' : '') + d.toFixed(0) + ' pp';
+  return {primacia, media, recencia, dP: fmt(primacia - media), dR: fmt(recencia - media)};
+}
+
+function renderSerialChart(ctx, w, h, results){
+  ctx.clearRect(0,0,w,h);
+  ctx.fillStyle = '#fbfaf7';
+  ctx.fillRect(0,0,w,h);
+
+  const padL = 46, padR = 20, padT = 44, padB = 60;
+  const plotW = w - padL - padR;
+  const plotH = h - padT - padB;
+  const n = results.length;
+  const barGap = 6;
+  const barW = (plotW - barGap*(n-1)) / n;
+  const media = zoneAverage(results, 5, 12);
+
+  ctx.fillStyle = '#1c2a33';
+  ctx.font = '600 15px Georgia, serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('Curva de posición serial — Lista A', padL, 22);
+
+  ctx.strokeStyle = '#e2e7e9';
+  ctx.fillStyle = '#7a8890';
+  ctx.font = '10px Helvetica, Arial, sans-serif';
+  ctx.textAlign = 'right';
+  ctx.lineWidth = 1;
+  for(let v=0; v<=100; v+=20){
+    const y = padT + plotH - (v/100)*plotH;
+    ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(w - padR, y); ctx.stroke();
+    ctx.fillText(v + '%', padL - 8, y + 3);
+  }
+
+  results.forEach((r,i)=>{
+    const x = padL + i*(barW+barGap);
+    const barH = (r.pct/100) * plotH;
+    const y = padT + plotH - barH;
+    let color = '#8fa3a6';
+    if(r.pos <= 4) color = '#3d6b70';
+    else if(r.pos >= 13) color = '#a9752c';
+    ctx.fillStyle = color;
+    ctx.fillRect(x, y, barW, barH);
+    ctx.fillStyle = '#5b6b73';
+    ctx.font = '9.5px Helvetica, Arial, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(String(r.pos), x + barW/2, h - padB + 14);
+  });
+
+  const mediaY = padT + plotH - (media/100)*plotH;
+  ctx.strokeStyle = '#a5473a';
+  ctx.setLineDash([5,4]);
+  ctx.beginPath(); ctx.moveTo(padL, mediaY); ctx.lineTo(w - padR, mediaY); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = '#a5473a';
+  ctx.font = '10px Helvetica, Arial, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('Media zona 5-12 (' + media.toFixed(0) + '%)', padL + 4, mediaY - 5);
+
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#5b6b73';
+  ctx.fillText('Posición de la palabra en Lista A', padL + plotW/2, h - 12);
+
+  const legendY = padT - 22;
+  ctx.textAlign = 'left';
+  ctx.font = '11px Helvetica, Arial, sans-serif';
+  ctx.fillStyle = '#3d6b70'; ctx.fillRect(w-300, legendY-9, 12, 12); ctx.fillText('Primacía', w-284, legendY+1);
+  ctx.fillStyle = '#8fa3a6'; ctx.fillRect(w-210, legendY-9, 12, 12);
+  ctx.fillStyle = '#5b6b73'; ctx.fillText('Zona media', w-194, legendY+1);
+  ctx.fillStyle = '#a9752c'; ctx.fillRect(w-90, legendY-9, 12, 12); ctx.fillText('Recencia', w-74, legendY+1);
+}
+
+function drawScreenSerialChart(){
+  const z = getZones();
+  document.getElementById('zone-primacia').textContent = z.primacia.toFixed(0) + '%';
+  document.getElementById('zone-media').textContent = z.media.toFixed(0) + '%';
+  document.getElementById('zone-recencia').textContent = z.recencia.toFixed(0) + '%';
+  document.getElementById('zone-delta-p').textContent = z.dP;
+  document.getElementById('zone-delta-r').textContent = z.dR;
+  const canvas = document.getElementById('serialCanvas');
+  renderSerialChart(canvas.getContext('2d'), canvas.width, canvas.height, computeSerialPosition(getSerialMode()));
+}
+
+function exportSerialChart(format){
+  const c = chartToCanvas('serial', 3);
+  downloadDataUrl(c.toDataURL(format === 'png' ? 'image/png' : 'image/jpeg', format === 'jpg' ? 0.98 : undefined),
+    `posicion_serial_primacia_recencia.${format === 'png' ? 'png' : 'jpg'}`);
+}
+
+/* ================== AUTOGUARDADO / AVANCES ================== */
+const STORAGE_KEY = 'bne_aprendizaje_palabras_v2';
+const KEY_STORAGE = 'bne_gemini_key';
+const MODEL_STORAGE = 'bne_gemini_model';
+
+function saveableControls(){
+  return [...document.querySelectorAll('.wrap input, .wrap select, .wrap textarea')]
+    .filter(el => !el.hasAttribute('data-nosave') && el.type !== 'file');
+}
+function assignKeys(){
+  saveableControls().forEach((el,i)=>{
+    if(el.type === 'radio') el.dataset.k = 'radio:' + el.name;
+    else el.dataset.k = el.id || ('f' + i);
+  });
+}
+function collectState(){
+  const fields = {};
+  saveableControls().forEach(el=>{
+    const k = el.dataset.k;
+    if(el.type === 'radio'){ if(el.checked) fields[k] = el.value; }
+    else if(el.type === 'checkbox') fields[k] = el.checked;
+    else fields[k] = el.value;
+  });
+  return {app:'bne-aprendizaje-palabras', version:2, savedAt:new Date().toISOString(), fields};
+}
+function applyState(state){
+  if(!state || !state.fields) return false;
+  const f = state.fields;
+  saveableControls().forEach(el=>{
+    const k = el.dataset.k;
+    if(!(k in f)) return;
+    if(el.type === 'radio') el.checked = (el.value === f[k]);
+    else if(el.type === 'checkbox') el.checked = !!f[k];
+    else el.value = f[k];
+  });
+  return true;
+}
+function storageGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
+function storageSet(k,v){ try{ localStorage.setItem(k,v); return true; }catch(e){ return false; } }
+function storageDel(k){ try{ localStorage.removeItem(k); }catch(e){} }
+
+let saveTimer = null;
+function scheduleSave(){
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(()=>{
+    const ok = storageSet(STORAGE_KEY, JSON.stringify(collectState()));
+    const t = new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    document.getElementById('saveStatus').innerHTML = ok
+      ? `Autoguardado · <b>${t}</b>`
+      : '<span style="color:#a5473a">No se pudo autoguardar en este navegador; use "Descargar avance".</span>';
+  }, 400);
+}
+
+function fileSafe(s){ return (s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^\w-]+/g,'_').replace(/^_+|_+$/g,''); }
+function baseFileName(){
+  const parts = [document.getElementById('p-expediente').value, document.getElementById('p-apellidos').value, document.getElementById('p-nombre').value].map(fileSafe).filter(Boolean);
+  const d = document.getElementById('p-fecha').value || new Date().toISOString().slice(0,10);
+  return 'aprendizaje_palabras_' + (parts.length ? parts.join('_') + '_' : '') + d;
+}
+function downloadProgress(){
+  const blob = new Blob([JSON.stringify(collectState(), null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  downloadDataUrl(url, baseFileName() + '.json');
+  setTimeout(()=>URL.revokeObjectURL(url), 2000);
+}
+function loadProgressFile(input){
+  const file = input.files && input.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    try{
+      const state = JSON.parse(reader.result);
+      if(state.app !== 'bne-aprendizaje-palabras') throw new Error('El archivo no es un avance de esta calculadora.');
+      resetControls();
+      applyState(state);
+      onAnyChange();
+      alert('Avance cargado (guardado el ' + new Date(state.savedAt).toLocaleString('es-MX') + ').');
+    }catch(e){ alert('No se pudo cargar el avance: ' + e.message); }
+    input.value = '';
+  };
+  reader.readAsText(file);
+}
+function resetControls(){
+  saveableControls().forEach(el=>{
+    if(el.type === 'radio') el.checked = el.defaultChecked;
+    else if(el.type === 'checkbox') el.checked = false;
+    else if(el.tagName === 'SELECT'){
+      const def = [...el.options].find(o=>o.defaultSelected);
+      el.value = def ? def.value : '';
+    } else el.value = '';
+  });
+}
+function clearAll(){
+  if(!confirm('¿Borrar todos los datos capturados? Se eliminará también el autoguardado. (Descargue antes el avance si quiere conservarlo.)')) return;
+  storageDel(STORAGE_KEY);
+  resetControls();
+  setGeminiStatus('');
+  onAnyChange();
+}
+
+/* ================== GEMINI ================== */
+function setGeminiStatus(msg, isErr){
+  const el = document.getElementById('geminiStatus');
+  el.textContent = msg || '';
+  el.className = 'gemini-status' + (isErr ? ' err' : '');
+}
+
+function buildGeminiPrompt(g){
+  const s = getScores();
+  const obtained = getObtainedCurve();
+  const z = getZones();
+  const p50 = p50Curve(g);
+  const rows = {
+    Lis1:'Ensayo 1 correctas', LisE5:'Ensayo 5 correctas', LisApr:'Total correctas ensayos 1-5', LisB:'Lista B correctas',
+    LisCPLib:'Recuerdo corto plazo libre', LisCPPist:'Recuerdo corto plazo con pistas', LisLPLib:'Recuerdo largo plazo libre',
+    LisLPPist:'Recuerdo largo plazo con pistas', LisDis:'Porcentaje discriminación (reconocimiento)'
+  };
+  const normTxt = Object.keys(rows).map(k=> `- ${rows[k]} (${k}): ` + g.tabla[k].map((v,i)=>`P${PCTS[i]}=${v===null?'·':v}`).join(', ')).join('\n');
+  const scoreTxt = SCORE_KEYS.map(k=> `- ${rows[k]}: ${s[k]} → ${lastNorm[k] ? lastNorm[k].label + ' (' + lastNorm[k].cls + ')' : 'sin percentil'}`).join('\n');
+  const edad = document.getElementById('p-edad').value || 'no indicada';
+  const esc = document.getElementById('p-escolaridad').value || 'no indicada';
+  const sexo = document.getElementById('p-sexo').value || 'no indicado';
+  const persev = [1,2,3,4,5].map(e=> document.querySelector(`input[data-block="A"][data-perse="${e}"]`).value || '0');
+  const intr = [1,2,3,4,5].map(e=> document.querySelector(`input[data-block="A"][data-intr="${e}"]`).value || '0');
+  const seqs = getSequences('A', LISTA_A, 5).map(x=>`Ens ${x.e}: ${x.text}`).join('\n');
+
+  return `Eres neuropsicólogo clínico experto en la prueba "Aprendizaje de Palabras" de la Batería Neuropsicológica en Español (Artiola i Fortuny, 1999; adaptación del CVLT, lista de 16 palabras en 4 categorías semánticas) y en los perfiles normativos NEURONORMA.
+
+TAREA 1: Estima la curva ESPERADA (rendimiento típico, mediana/P50) para una persona del grupo normativo indicado, en estos 10 puntos y en este orden:
+${CURVE_LABELS.map((l,i)=>`${i+1}. ${l}`).join('\n')}
+Usa las tablas de percentiles del grupo. NEURONORMA solo publica Ens 1, Ens 5 y el total de los ensayos 1-5; estima Ens 2, 3 y 4 con una curva de aprendizaje negativamente acelerada cuya suma Ens1+…+Ens5 sea coherente con el P50 del total. Lista B debe parecerse a un primer ensayo. Valores entre 0 y 16, con un decimal como máximo. Ajusta ligeramente si la escolaridad del paciente se aleja de la media del grupo, y explica el ajuste.
+
+TAREA 2: Redacta un análisis clínico breve (120-220 palabras, español neutro, tono de informe neuropsicológico, sin diagnósticos categóricos) de la curva obtenida frente a la esperada: adquisición/pendiente de aprendizaje, efecto de interferencia (Lista B), consolidación y recuperación libre vs. con pistas a corto y largo plazo, reconocimiento/discriminación, efectos de primacía y recencia, perseveraciones e intrusiones. Usa los percentiles proporcionados; no inventes datos.
+
+GRUPO NORMATIVO: ${g.id} (${g.rango} años${g.n ? ', n=' + g.n : ''}); media de edad ${g.edadM} (±${g.edadDE}); escolaridad ${g.escM} (±${g.escDE}) años.
+Percentiles NEURONORMA (P10…P95; "·" = sin dato):
+${normTxt}
+
+Referencia determinista (P50 con Ens 2-4 interpolados): ${JSON.stringify(p50)}
+
+PACIENTE: edad ${edad}; sexo ${sexo}; escolaridad ${esc} años.
+Curva obtenida (mismo orden): ${JSON.stringify(obtained)}
+Puntuaciones directas y percentiles:
+${scoreTxt}
+Perseveraciones por ensayo (Lista A): ${persev.join(', ')}; intrusiones por ensayo: ${intr.join(', ')}
+Secuencias de recuerdo Lista A:
+${seqs}
+Reconocimiento: aciertos ${lastRecon.hits}/16, falsos positivos ${lastRecon.fpTotal}/28 (${Object.keys(FP_CHIPS).map(k=>FP_CHIPS[k][0]+': '+lastRecon.fpByCat[k]).join('; ')}).
+Posición serial (${getSerialMode()==='1'?'Ensayo 1':'promedio 5 ensayos'}): primacía ${z.primacia.toFixed(0)}%, zona media ${z.media.toFixed(0)}%, recencia ${z.recencia.toFixed(0)}%.
+
+Responde SOLO con JSON válido con esta forma exacta:
+{"esperado":[10 números],"justificacion":"1-2 frases sobre cómo estimaste la curva esperada","analisis":"texto del análisis clínico"}`;
+}
+
+async function analyzeWithGemini(){
+  const g = currentGroup();
+  if(!g){ setGeminiStatus('Seleccione primero un grupo normativo (capture la edad del paciente).', true); return; }
+  const key = document.getElementById('geminiKey').value.trim();
+  if(!key){ setGeminiStatus('Escriba su clave API de Gemini (Google AI Studio → Get API key).', true); document.getElementById('geminiKey').focus(); return; }
+  const model = (document.getElementById('geminiModel').value.trim() || 'gemini-flash-latest').replace(/^models\//,'');
+  rememberGemini();
+  recalcAll();
+  const btn = document.getElementById('btnGemini');
+  btn.disabled = true;
+  setGeminiStatus('Consultando a Gemini (' + model + ')…');
+  try{
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-goog-api-key':key},
+      body: JSON.stringify({
+        contents:[{role:'user', parts:[{text: buildGeminiPrompt(g)}]}],
+        generationConfig:{temperature:0.2, responseMimeType:'application/json'}
+      })
+    });
+    const data = await res.json().catch(()=>({}));
+    if(!res.ok) throw new Error((data.error && data.error.message) || ('HTTP ' + res.status));
+    const cand = data.candidates && data.candidates[0];
+    const text = cand && cand.content && cand.content.parts ? cand.content.parts.filter(p=>!p.thought).map(p=>p.text||'').join('') : '';
+    if(!text) throw new Error('Gemini no devolvió contenido' + (cand && cand.finishReason ? ' (' + cand.finishReason + ')' : '') + '.');
+    const json = JSON.parse(text.replace(/^```(?:json)?\s*|\s*```$/g,''));
+    const esp = Array.isArray(json.esperado) ? json.esperado.map(v=> v===null ? null : parseFloat(v)) : null;
+    if(!esp || esp.length !== 10 || esp.some(v=> v!==null && isNaN(v))) throw new Error('La respuesta no trae 10 valores esperados válidos.');
+    setExpected(esp);
+    const ta = document.getElementById('geminiAnalisis');
+    ta.value = (json.analisis || '').trim() + (json.justificacion ? '\n\nCurva esperada: ' + json.justificacion.trim() : '');
+    onAnyChange();
+    setGeminiStatus('Listo: valores esperados y análisis generados por Gemini (' + model + ') para el grupo ' + g.id + '. Revíselos antes de usarlos en el informe.');
+  }catch(e){
+    setGeminiStatus('Error con Gemini: ' + e.message, true);
+  }finally{
+    btn.disabled = false;
+  }
+}
+
+function rememberGemini(){
+  const rem = document.getElementById('geminiRemember').checked;
+  storageSet(MODEL_STORAGE, document.getElementById('geminiModel').value.trim());
+  if(rem) storageSet(KEY_STORAGE, document.getElementById('geminiKey').value.trim());
+  else storageDel(KEY_STORAGE);
+}
+function restoreGemini(){
+  const k = storageGet(KEY_STORAGE);
+  if(k){ document.getElementById('geminiKey').value = k; document.getElementById('geminiRemember').checked = true; }
+  const m = storageGet(MODEL_STORAGE);
+  if(m) document.getElementById('geminiModel').value = m;
+}
+
+/* ================== EXPORTACIÓN A WORD / GOOGLE DOCS ================== */
+const C = {ink:'1C2A33', accent:'3D6B70', accentSoft:'E4EEEE', amber:'A9752C', amberSoft:'F6ECDC', line:'D8DEE2', lineSoft:'E9EDF0', gray:'5B6B73', light:'7A8890', totals:'F4F6F5', danger:'A5473A', dangerSoft:'F6E6E3', mediaSoft:'EEF0EE'};
+const SERIF = 'Palatino Linotype', SANS = 'Arial';
+const CLS_COLORS = {Inferior:[C.dangerSoft,C.danger], 'Límite':[C.amberSoft,C.amber], Medio:[C.mediaSoft,C.gray], Superior:[C.accentSoft,C.accent]};
+
+function dataUrlToBytes(url){
+  const b64 = url.split(',')[1];
+  const bin = atob(b64);
+  const out = new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+
+async function exportDocx(){
+  if(!window.docx){ alert('No se pudo cargar la librería para generar .docx (requiere conexión a internet la primera vez).'); return; }
+  const btn = document.getElementById('btnDocx');
+  btn.disabled = true;
+  try{
+    recalcAll();
+    const D = window.docx;
+    const T = (text, o={}) => new D.TextRun({
+      text: String(text), font: o.font || SERIF, size: Math.round((o.size || 10) * 2),
+      bold: !!o.bold, italics: !!o.italic, color: o.color || C.ink, allCaps: !!o.caps,
+      characterSpacing: o.spacing
+    });
+    const P = (runs, o={}) => new D.Paragraph({
+      children: Array.isArray(runs) ? runs : [runs],
+      alignment: o.align === 'left' ? D.AlignmentType.LEFT : o.align === 'right' ? D.AlignmentType.RIGHT : o.align === 'center' ? D.AlignmentType.CENTER : D.AlignmentType.LEFT,
+      spacing: {before: o.before || 0, after: o.after === undefined ? 0 : o.after, line: o.line},
+      border: o.border, shading: o.shading, tabStops: o.tabStops
+    });
+    const bSoft = {style: D.BorderStyle.SINGLE, size: 4, color: C.lineSoft};
+    const bNone = {style: D.BorderStyle.NONE, size: 0, color: 'FFFFFF'};
+    const cellBorders = {top:bSoft, bottom:bSoft, left:bSoft, right:bSoft};
+    const noBorders = {top:bNone, bottom:bNone, left:bNone, right:bNone};
+    const Cell = (content, o={}) => new D.TableCell({
+      children: Array.isArray(content) && content[0] instanceof D.Paragraph ? content
+        : [P(Array.isArray(content) ? content : [T(content === null || content === undefined ? '' : content, o)], {align: o.align || 'center'})],
+      shading: o.fill ? {fill: o.fill, type: D.ShadingType.CLEAR, color: 'auto'} : undefined,
+      borders: o.noBorder ? noBorders : cellBorders,
+      margins: {top: o.pad || 50, bottom: o.pad || 50, left: 90, right: 90},
+      verticalAlign: D.VerticalAlign.CENTER,
+      width: o.dxa ? {size: o.dxa, type: D.WidthType.DXA} : (o.width ? {size: o.width, type: D.WidthType.PERCENTAGE} : undefined),
+      columnSpan: o.span
+    });
+    const TH = (t, o={}) => Cell(t, Object.assign({fill: C.accentSoft, font: SANS, size: 7.5, caps: true, bold: true, color: C.accent}, o));
+    const Table = (rows, o={}) => new D.Table({rows, width: o.cols ? {size: o.cols.reduce((a,b)=>a+b,0), type: D.WidthType.DXA} : {size: o.width || 100, type: D.WidthType.PERCENTAGE}, columnWidths: o.cols, layout: o.cols ? D.TableLayoutType.FIXED : undefined, borders: o.noBorder ? Object.assign({insideHorizontal:bNone, insideVertical:bNone}, noBorders) : undefined});
+    const Row = (cells, header) => new D.TableRow({children: cells, cantSplit: true, tableHeader: !!header});
+    const FULL = 10240;
+    const H2 = t => P([T(t, {font: SANS, size: 9.5, caps: true, bold: true, color: C.accent, spacing: 16})],
+      {before: 280, after: 120, border: {bottom: {style: D.BorderStyle.SINGLE, size: 6, color: C.line, space: 4}}});
+    const H3 = t => P([T(t, {font: SANS, size: 8, caps: true, bold: true, color: C.gray, spacing: 10})], {before: 140, after: 60});
+    const Note = t => P([T(t, {font: SANS, size: 7.5, italic: true, color: '8A969C'})], {before: 60, after: 60});
+    const check = v => v ? '☒' : '☐';
+    const val = id => { const el = document.getElementById(id); return el ? el.value : ''; };
+    const body = [];
+
+    /* Encabezado */
+    body.push(P([T('Aprendizaje de Palabras — Batería Neuropsicológica en Español', {size: 16, bold: true})], {after: 40}));
+    body.push(P([T('Artiola i Fortuny (1999), a partir del California Verbal Learning Test · Perfiles NEURONORMA', {font: SANS, size: 8, caps: true, color: C.gray, spacing: 14})], {after: 160}));
+
+    /* Datos del paciente */
+    body.push(H2('Datos del paciente'));
+    const pf = [['Nombre','p-nombre'],['Apellidos','p-apellidos'],['Expediente','p-expediente'],['Examinador(a)','p-examinador'],
+                ['Sexo','p-sexo'],['Edad','p-edad'],['Escolaridad','p-escolaridad'],['Fecha de aplicación','p-fecha']];
+    const pRows = [];
+    for(let r=0;r<2;r++){
+      pRows.push(Row(pf.slice(r*4, r*4+4).map(([l,id])=> Cell([
+        P([T(l, {font: SANS, size: 7, caps: true, color: C.light})], {align: 'left'}),
+        P([T(val(id) + (id==='p-edad' && val(id) ? ' años' : '') + (id==='p-escolaridad' && val(id) ? ' años' : ''), {size: 10.5})], {align: 'left', border: {bottom: {style: D.BorderStyle.SINGLE, size: 4, color: C.line, space: 1}}})
+      ], {noBorder: true, width: 25, pad: 70}))));
+    }
+    body.push(Table(pRows, {noBorder: true}));
+    const g = currentGroup();
+    body.push(P([T('Grupo normativo NEURONORMA: ', {font: SANS, size: 8.5, color: C.light}),
+                 T(g ? `${g.id} · ${g.rango} años${g.n ? ' (n=' + g.n + ')' : ''} — edad ${g.edadM} (±${g.edadDE}), escolaridad ${g.escM} (±${g.escDE}) años` : 'no seleccionado', {font: SANS, size: 8.5, bold: true})], {before: 120}));
+    const warn = document.querySelector('#normInfo .norm-warn');
+    if(warn) body.push(P([T(warn.textContent, {font: SANS, size: 8, italic: true, color: C.danger})], {before: 40}));
+
+    /* Resumen */
+    body.push(H2('Resumen de puntuaciones'));
+    const s = getScores();
+    const lbl = t => Cell(t, {font: SANS, size: 7, caps: true, color: C.gray, align: 'right', dxa: 2140});
+    const SUMCOLS = [2140, ...SCORE_KEYS.map(()=>900)];
+    const sumRows = [Row([TH('', {dxa: 2140}), ...SCORE_KEYS.map(k=>TH(k, {size: 6.5, dxa: 900}))], true)];
+    sumRows.push(Row([lbl('Puntuación directa'), ...SCORE_KEYS.map(k=>Cell(k==='LisDis' ? s[k].toFixed(1) : s[k], {fill: C.accentSoft, bold: true, color: C.accent, size: 11}))]));
+    sumRows.push(Row([lbl('Percentil NEURONORMA'), ...SCORE_KEYS.map(k=>Cell(g ? lastNorm[k].label : '—', {font: SANS, size: 9, bold: true}))]));
+    sumRows.push(Row([lbl('Clasificación'), ...SCORE_KEYS.map(k=>{
+      const c = lastNorm[k] && lastNorm[k].cls;
+      return c ? Cell(c, {fill: CLS_COLORS[c][0], color: CLS_COLORS[c][1], font: SANS, size: 7, caps: true, bold: true}) : Cell('');
+    })]));
+    sumRows.push(Row([lbl('Puntuación a escala'), ...SCORE_KEYS.map(k=>Cell(val('esc-'+k)))]));
+    sumRows.push(Row([lbl('Puntuación corregida (T)'), ...SCORE_KEYS.map(k=>Cell(val('T-'+k)))]));
+    body.push(Table(sumRows, {cols: SUMCOLS}));
+    body.push(Note('Percentil y clasificación según NEURONORMA (Inferior P≤20 · Límite P30 · Medio P40–70 · Superior P≥80). LisApr = suma de correctas de los ensayos 1–5.'));
+
+    /* Tablas de ensayos */
+    function ensayosTable(prefix, palabras, num){
+      const wc = num === 1 ? 5120 : 3040, ec = num === 1 ? 5120 : 1440;
+      const rows = [Row([TH('Lista', {align: 'left', dxa: wc}), ...Array.from({length:num},(_,i)=>TH('Ens ' + (i+1), {dxa: ec}))], true)];
+      palabras.forEach((p,i)=>{
+        rows.push(Row([Cell(`${i+1}. ${p}`, {align: 'left', size: 10}),
+          ...Array.from({length:num},(_,e)=>{
+            const inp = document.querySelector(`input[data-block="${prefix}"][data-col="${e+1}"][data-row="${i}"]`);
+            return Cell(inp && inp.value !== '' ? inp.value : '', {font: SANS, size: 9.5});
+          })]));
+      });
+      rows.push(Row([Cell('Correctas', {fill: C.totals, font: SANS, size: 7.5, caps: true, color: C.gray, align: 'right'}),
+        ...Array.from({length:num},(_,e)=>Cell(document.getElementById(`${prefix}-correctas-${e+1}`).textContent, {fill: C.totals, bold: true}))]));
+      [['Perseveraciones','perse'],['Intrusiones','intr']].forEach(([l,a])=>{
+        rows.push(Row([Cell(l, {align: 'left', size: 10}),
+          ...Array.from({length:num},(_,e)=>{ const el = document.querySelector(`input[data-block="${prefix}"][data-${a}="${e+1}"]`); return Cell(el ? el.value : ''); })]));
+      });
+      body.push(Table(rows, {cols: [wc, ...Array.from({length:num},()=>ec)]}));
+      const seq = getSequences(prefix, palabras, num);
+      body.push(new D.Table({width: {size:100, type: D.WidthType.PERCENTAGE}, rows: [Row([Cell(seq.map(x=>
+        P([T('Ens ' + x.e + ': ', {font: SANS, size: 8.5, bold: true, color: C.accent}), T(x.text, {font: SANS, size: 8.5}),
+           ...(x.hasDup ? [T(' · hay números de orden repetidos', {font: SANS, size: 8.5, italic: true, color: C.danger})] : [])], {after: 30})
+      ), {fill: C.totals, noBorder: true, pad: 110})])]}));
+    }
+    body.push(H2('Lista A — 5 ensayos'));
+    ensayosTable('A', LISTA_A, 5);
+    body.push(H2('Lista B — interferencia'));
+    ensayosTable('B', LISTA_B, 1);
+
+    /* Recuerdos */
+    function recallParas(prefix, cued){
+      const out = [];
+      const checked = w => { const el = document.querySelector(`input[type=checkbox][data-block="${prefix}"][data-word="${w}"]`); return el && el.checked; };
+      if(cued){
+        CATEGORIAS_A.forEach(cat=>{
+          out.push(P([T(cat.nombre, {font: SANS, size: 7.5, caps: true, bold: true, color: C.amber})], {before: 60, after: 20}));
+          cat.palabras.forEach(w=> out.push(P([T(check(checked(w)) + '  ', {font: 'Segoe UI Symbol', size: 11, color: C.accent}), T(w, {size: 10})])));
+        });
+      } else {
+        LISTA_A.forEach((w,i)=> out.push(P([T(check(checked(w)) + '  ', {font: 'Segoe UI Symbol', size: 11, color: C.accent}), T(`${i+1}. ${w}`, {size: 10})])));
+      }
+      const pe = document.querySelector(`input[data-persetotal="${prefix}"]`).value;
+      const it = document.querySelector(`input[data-intrtotal="${prefix}"]`).value;
+      out.push(P([T('Correctas: ', {font: SANS, size: 8, color: C.gray}), T(document.getElementById(prefix + '-correctas').textContent + ' / 16', {bold: true, size: 10}),
+                  T('    Perseveraciones: ', {font: SANS, size: 8, color: C.gray}), T(pe || '—', {bold: true, size: 10}),
+                  T('    Intrusiones: ', {font: SANS, size: 8, color: C.gray}), T(it || '—', {bold: true, size: 10})], {before: 100}));
+      return out;
+    }
+    function recallSection(title, freeTitle, freeP, cuedTitle, cuedP){
+      body.push(H2(title));
+      body.push(Table([Row([
+        Cell([H3(freeTitle), ...recallParas(freeP, false)], {noBorder: true, width: 50, pad: 40}),
+        Cell([H3(cuedTitle), ...recallParas(cuedP, true)], {noBorder: true, width: 50, pad: 40})
+      ])], {noBorder: true}));
+    }
+    recallSection('Recuerdo tras interferencia — corto plazo', 'Recuerdo a corto plazo libre (RCPLib)', 'RCPL', 'Recuerdo a corto plazo facilitado por pistas (RCPPist)', 'RCPP');
+    body.push(P([T('', {size: 4})], {before: 120}));
+    body.push(new D.Table({width: {size:100, type: D.WidthType.PERCENTAGE}, rows: [Row([new D.TableCell({
+      children: [P([T('Esperar 20 minutos antes del recuerdo a largo plazo', {font: SANS, size: 8.5, caps: true, color: '7A5420', spacing: 10})], {align: 'center'})],
+      shading: {fill: C.amberSoft, type: D.ShadingType.CLEAR, color: 'auto'},
+      borders: {top:{style: D.BorderStyle.DASHED, size: 6, color: 'C79A56'}, bottom:{style: D.BorderStyle.DASHED, size: 6, color: 'C79A56'}, left:{style: D.BorderStyle.DASHED, size: 6, color: 'C79A56'}, right:{style: D.BorderStyle.DASHED, size: 6, color: 'C79A56'}},
+      margins: {top: 100, bottom: 100, left: 100, right: 100}
+    })])]}));
+    recallSection('Recuerdo a largo plazo', 'Recuerdo a largo plazo libre (RLPLib)', 'RLPL', 'Recuerdo a largo plazo facilitado por pistas (RLPPist)', 'RLPP');
+
+    /* Reconocimiento */
+    body.push(H2('Reconocimiento (44 ítems)'));
+    const rRows = [Row([TH('Ítem'), TH('Palabra', {align: 'left'}), TH('Sí'), TH('Categoría')], true)];
+    RECON_ITEMS.forEach(it=>{
+      const si = document.querySelector(`.recon-si[data-n="${it.n}"]`).checked;
+      const cat = document.querySelector(`.recon-cat[data-n="${it.n}"]`).value;
+      rRows.push(Row([Cell(it.n, {size: 9.5}), Cell(it.w, {align: 'left', size: 10}),
+        Cell(check(si), {font: 'Segoe UI Symbol', size: 11, color: C.accent}),
+        Cell(cat ? CAT_LABELS[cat] : '— sin asignar —', {font: SANS, size: 8, color: cat ? C.ink : C.danger})]));
+    });
+    body.push(Table(rRows, {cols: [1000, 3600, 1000, 4640]}));
+
+    /* Discriminación */
+    body.push(H2('Cálculo de discriminación'));
+    const R = lastRecon;
+    const dl = (l,v) => P([T(l, {font: SANS, size: 9}), new D.TextRun({text: '\t'}), T(v, {font: SANS, size: 9.5, bold: true})], {after: 50, tabStops: [{type: D.TabStopType.RIGHT, position: 5600}], border: {bottom: {style: D.BorderStyle.DOTTED, size: 4, color: C.line, space: 2}}});
+    body.push(Table([Row([
+      Cell([
+        dl('Total de respuestas correctas (aciertos, de 16)', R.hits),
+        dl('Fallos = 16 − aciertos', R.fallos),
+        dl('Total de falsos positivos (de 28)', R.fpTotal),
+        P(Object.keys(FP_CHIPS).map((k,i)=>T((i?'   ':'') + `${FP_CHIPS[k][0]}: ${R.fpByCat[k]}/${FP_CHIPS[k][1]}`, {font: SANS, size: 8, color: C.danger})), {before: 80})
+      ], {noBorder: true, width: 56, pad: 60}),
+      Cell([
+        P([T('1 − [(Falsos positivos + Fallos) ÷ 44] × 100', {font: SANS, size: 9})], {align: 'left'}),
+        P([T(R.discriminacion.toFixed(1), {font: SANS, size: 21, bold: true, color: C.accent})], {align: 'left', before: 60})
+      ], {fill: C.totals, noBorder: true, width: 44, pad: 140})
+    ])], {noBorder: true}));
+
+    /* Curva de aprendizaje */
+    body.push(H2('Curva de aprendizaje'));
+    const exp = getExpectedCurve(), obt = getObtainedCurve();
+    body.push(Table([
+      Row([TH(''), ...CURVE_LABELS.map(l=>TH(l, {size: 6}))], true),
+      Row([Cell('Obtenido', {font: SANS, size: 7.5, caps: true, color: C.accent, bold: true, align: 'right'}), ...obt.map(v=>Cell(v, {fill: C.accentSoft, bold: true, color: C.accent, size: 9.5}))]),
+      Row([Cell('Esperado', {font: SANS, size: 7.5, caps: true, color: C.amber, bold: true, align: 'right'}), ...exp.map(v=>Cell(v === null ? '' : v, {fill: C.amberSoft, bold: true, color: C.amber, size: 9.5}))])
+    ], {cols: [1240, ...CURVE_LABELS.map(()=>900)]}));
+    const W = 640;
+    const lc = chartToCanvas('learning', 3).toDataURL('image/png');
+    body.push(P([new D.ImageRun({data: dataUrlToBytes(lc), transformation: {width: W, height: Math.round(W*420/900)}})], {align: 'center', before: 160, after: 80}));
+    const analisis = val('geminiAnalisis').trim();
+    if(analisis){
+      body.push(H3('Análisis de la curva'));
+      analisis.split(/\n+/).forEach(par=> body.push(P([T(par, {size: 10.5})], {after: 100, line: 300})));
+    }
+
+    /* Posición serial */
+    body.push(H2('Efecto de primacía y recencia'));
+    const z = getZones();
+    body.push(Note('Curva de posición serial de Lista A (' + (getSerialMode()==='1' ? 'Ensayo 1' : 'promedio de los 5 ensayos') + '): primacía 1–4, zona media 5–12, recencia 13–16.'));
+    const chip = (label, value, fill, color) => Cell([
+      P([T(label, {font: SANS, size: 7, caps: true, color})], {align: 'left'}),
+      P([T(value, {font: SANS, size: 14, bold: true, color})], {align: 'left', before: 30})
+    ], {fill, noBorder: true, width: 20, pad: 110});
+    body.push(Table([Row([
+      chip('Primacía (1-4)', z.primacia.toFixed(0) + '%', C.accentSoft, C.accent),
+      chip('Zona media (5-12)', z.media.toFixed(0) + '%', C.mediaSoft, C.gray),
+      chip('Recencia (13-16)', z.recencia.toFixed(0) + '%', C.amberSoft, C.amber),
+      chip('Δ primacía − media', z.dP, C.totals, C.ink),
+      chip('Δ recencia − media', z.dR, C.totals, C.ink)
+    ])], {noBorder: true}));
+    const sc = chartToCanvas('serial', 3).toDataURL('image/png');
+    body.push(P([new D.ImageRun({data: dataUrlToBytes(sc), transformation: {width: W, height: Math.round(W*380/900)}})], {align: 'center', before: 160}));
+
+    const doc = new D.Document({
+      creator: 'Calculadora Aprendizaje de Palabras',
+      title: 'Aprendizaje de Palabras',
+      styles: {default: {document: {run: {font: SERIF, size: 20, color: C.ink}}}},
+      sections: [{
+        properties: {page: {size: {width: 12240, height: 15840}, margin: {top: 1000, right: 1000, bottom: 1000, left: 1000}}},
+        children: body
+      }]
+    });
+    const blob = await D.Packer.toBlob(doc);
+    const url = URL.createObjectURL(blob);
+    downloadDataUrl(url, baseFileName() + '.docx');
+    setTimeout(()=>URL.revokeObjectURL(url), 4000);
+  }catch(e){
+    console.error(e);
+    alert('No se pudo generar el .docx: ' + e.message);
+  }finally{
+    btn.disabled = false;
+  }
+}
+
+/* ================== EVENTOS E INICIO ================== */
+function onAnyChange(){
+  recalcAll();
+  drawScreenChart();
+  drawScreenSerialChart();
+  scheduleSave();
+}
+
+document.addEventListener('input', ev=>{
+  const t = ev.target;
+  if(t.hasAttribute && t.hasAttribute('data-nosave')){
+    if(t.id === 'geminiModel' || t.id === 'geminiRemember' || t.id === 'geminiKey') rememberGemini();
+    return;
+  }
+  if(t.id === 'p-edad'){
+    const gid = groupForAge(parseFloat(t.value));
+    document.getElementById('grupoNorma').value = gid || '';
+  }
+  onAnyChange();
+});
+document.addEventListener('change', ev=>{
+  const t = ev.target;
+  if(t.hasAttribute && t.hasAttribute('data-nosave')){ if(t.id !== 'loadFile') rememberGemini(); return; }
+  onAnyChange();
+});
+
+assignKeys();
+restoreGemini();
+(function restore(){
+  const raw = storageGet(STORAGE_KEY);
+  if(!raw) return;
+  try{
+    const st = JSON.parse(raw);
+    if(applyState(st)){
+      document.getElementById('saveStatus').innerHTML = 'Avance restaurado · <b>' + new Date(st.savedAt).toLocaleString('es-MX') + '</b>';
+    }
+  }catch(e){}
+})();
+recalcAll();
+drawScreenChart();
+drawScreenSerialChart();
+</script>
+</body>
+</html>

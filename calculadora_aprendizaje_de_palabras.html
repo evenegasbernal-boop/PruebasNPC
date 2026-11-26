@@ -297,7 +297,7 @@
 
   <section>
     <h2>Curva de aprendizaje</h2>
-    <div class="note" style="margin-bottom:10px;">
+    <div class="note no-print" style="margin-bottom:10px;">
       Valores esperados para el grupo normativo seleccionado. Elija <b>Gemini</b> o <b>ChatGPT</b> y use <b>Analizar con IA</b> para que la IA estime la curva esperada a partir de las tablas NEURONORMA del grupo y redacte un análisis, o <b>Rellenar con P50</b> para usar directamente la mediana normativa (Ens 2–4 se interpolan, ya que NEURONORMA solo publica Ens 1, Ens 5 y el total). Puede editar cualquier valor; si deja un punto en blanco, esa parte de la línea no se dibuja.
     </div>
     <div id="expectedInputs" class="expected-row"></div>
@@ -328,12 +328,12 @@
       <button class="amber primary" id="btnGemini" onclick="analyzeWithAI()">Analizar con Gemini</button>
       <button class="amber" onclick="fillExpectedP50(true)">Rellenar con P50 NEURONORMA</button>
     </div>
-    <div class="gemini-status" id="geminiStatus"></div>
+    <div class="gemini-status no-print" id="geminiStatus"></div>
 
     <canvas id="learningCanvas" width="900" height="420" style="width:100%;max-width:900px;display:block;margin:14px auto;background:#fff;border:1px solid var(--line-soft);border-radius:3px;"></canvas>
 
-    <h3>Análisis de la curva (IA · editable)</h3>
-    <textarea class="analysis" id="geminiAnalisis" placeholder="Aquí aparecerá el análisis generado por la IA (Gemini o ChatGPT). Puede editarlo; se guarda con el avance y se incluye en el .docx."></textarea>
+    <h3>Análisis de la curva</h3>
+    <textarea class="analysis" id="geminiAnalisis" placeholder="Análisis de la curva de aprendizaje. Puede editarlo; se guarda con el avance y se incluye en el .docx."></textarea>
 
     <div class="toolbar" style="justify-content:center;margin-top:12px;">
       <button onclick="exportChart('png')">Descargar PNG (alta resolución)</button>
@@ -1162,7 +1162,7 @@ TAREA 1: Estima la curva ESPERADA (rendimiento típico, mediana/P50) para una pe
 ${CURVE_LABELS.map((l,i)=>`${i+1}. ${l}`).join('\n')}
 Usa las tablas de percentiles del grupo. NEURONORMA solo publica Ens 1, Ens 5 y el total de los ensayos 1-5; estima Ens 2, 3 y 4 con una curva de aprendizaje negativamente acelerada cuya suma Ens1+…+Ens5 sea coherente con el P50 del total. Lista B debe parecerse a un primer ensayo. Valores entre 0 y 16, con un decimal como máximo. Ajusta ligeramente si la escolaridad del paciente se aleja de la media del grupo, y explica el ajuste.
 
-TAREA 2: Redacta un análisis clínico breve (120-220 palabras, español neutro, tono de informe neuropsicológico, sin diagnósticos categóricos) de la curva obtenida frente a la esperada: adquisición/pendiente de aprendizaje, efecto de interferencia (Lista B), consolidación y recuperación libre vs. con pistas a corto y largo plazo, reconocimiento/discriminación, efectos de primacía y recencia, perseveraciones e intrusiones. Usa los percentiles proporcionados; no inventes datos.
+TAREA 2: Redacta un análisis clínico breve (120-220 palabras, español neutro, tono de informe neuropsicológico, sin diagnósticos categóricos) de la curva obtenida frente a la esperada: adquisición/pendiente de aprendizaje, efecto de interferencia (Lista B), consolidación y recuperación libre vs. con pistas a corto y largo plazo, reconocimiento/discriminación, efectos de primacía y recencia, perseveraciones e intrusiones. Usa los percentiles proporcionados; no inventes datos. Escríbelo como lo redactaría el propio neuropsicólogo en su informe, en tercera persona sobre el paciente ("el paciente"/"la paciente"), en uno o dos párrafos de prosa continua. No menciones inteligencia artificial, modelos de lenguaje, ni que el texto fue generado; no uses guiones largos (—), negritas, viñetas, encabezados, frases de cierre que resuman, ni muletillas como "cabe destacar", "en conclusión" o "es importante señalar".
 
 GRUPO NORMATIVO: ${g.id} (${g.rango} años${g.n ? ', n=' + g.n : ''}); media de edad ${g.edadM} (±${g.edadDE}); escolaridad ${g.escM} (±${g.escDE}) años.
 Percentiles NEURONORMA (P10…P95; "·" = sin dato):
@@ -1181,7 +1181,7 @@ Reconocimiento: aciertos ${lastRecon.hits}/16, falsos positivos ${lastRecon.fpTo
 Posición serial (${getSerialMode()==='1'?'Ensayo 1':'promedio 5 ensayos'}): primacía ${z.primacia.toFixed(0)}%, zona media ${z.media.toFixed(0)}%, recencia ${z.recencia.toFixed(0)}%.
 
 Responde SOLO con JSON válido con esta forma exacta:
-{"esperado":[10 números],"justificacion":"1-2 frases sobre cómo estimaste la curva esperada","analisis":"texto del análisis clínico"}`;
+{"esperado":[10 números],"justificacion":"1 frase sobre el criterio de la curva esperada","analisis":"texto del análisis clínico"}`;
 }
 
 const AI = {
@@ -1218,6 +1218,22 @@ function switchProvider(){
   setGeminiStatus('');
 }
 
+/* Deja el texto del análisis como redactado por el clínico: sin firmas de IA, caracteres invisibles ni guiones largos */
+function cleanReportText(s){
+  return String(s || '')
+    .replace(/[\u200B-\u200D\u2060\uFEFF\u00AD]/g, '')
+    .replace(/\u00A0/g, ' ')
+    .split('\n')
+    .filter(l => !/^\s*\(?\s*(generado|elaborado|redactado|creado)\s+(con|por)\s+(la\s+)?(ia|inteligencia artificial|gemini|chatgpt|gpt|openai)/i.test(l))
+    .filter(l => !/^\s*curva esperada\s*:/i.test(l))
+    .join('\n')
+    .replace(/\s*[—–]\s*/g, ', ')
+    .replace(/\*\*(.+?)\*\*/g, '$1')
+    .replace(/[“”]/g, '"')
+    .replace(/,\s*,/g, ',')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
 function parseAIJson(text){
   text = String(text || '').trim().replace(/^```(?:json)?\s*|\s*```$/g,'');
   try{ return JSON.parse(text); }
@@ -1293,9 +1309,9 @@ async function analyzeWithAI(){
     if(!esp || esp.length !== 10 || esp.some(v=> v!==null && isNaN(v))) throw new Error('la respuesta no trae 10 valores esperados válidos.');
     setExpected(esp);
     const ta = document.getElementById('geminiAnalisis');
-    ta.value = (json.analisis || '').trim() + (json.justificacion ? '\n\nCurva esperada: ' + json.justificacion.trim() : '') + '\n\n(Generado con ' + cfg.name + ' · ' + model + ')';
+    ta.value = cleanReportText(json.analisis || '');
     onAnyChange();
-    setGeminiStatus('Listo: valores esperados y análisis generados por ' + cfg.name + ' (' + model + ') para el grupo ' + g.id + '. Revíselos antes de usarlos en el informe.');
+    setGeminiStatus('Listo: valores esperados y análisis generados por ' + cfg.name + ' (' + model + ') para el grupo ' + g.id + '. Revíselos antes de usarlos en el informe.' + (json.justificacion ? ' Criterio de la curva esperada: ' + json.justificacion.trim() : ''));
   }catch(e){
     setGeminiStatus('Error con ' + cfg.name + ': ' + e.message, true);
   }finally{
@@ -1538,7 +1554,7 @@ async function exportDocx(){
     const W = 640;
     const lc = chartToCanvas('learning', 3).toDataURL('image/png');
     body.push(P([new D.ImageRun({data: dataUrlToBytes(lc), transformation: {width: W, height: Math.round(W*420/900)}})], {align: 'center', before: 160, after: 80}));
-    const analisis = val('geminiAnalisis').trim();
+    const analisis = cleanReportText(val('geminiAnalisis'));
     if(analisis){
       body.push(H3('Análisis de la curva'));
       analisis.split(/\n+/).forEach(par=> body.push(P([T(par, {size: 10.5})], {after: 100, line: 300})));

@@ -298,37 +298,42 @@
   <section>
     <h2>Curva de aprendizaje</h2>
     <div class="note" style="margin-bottom:10px;">
-      Valores esperados para el grupo normativo seleccionado. Use <b>Analizar con Gemini</b> para que Gemini estime la curva esperada a partir de las tablas NEURONORMA del grupo y redacte un análisis, o <b>Rellenar con P50</b> para usar directamente la mediana normativa (Ens 2–4 se interpolan, ya que NEURONORMA solo publica Ens 1, Ens 5 y el total). Puede editar cualquier valor; si deja un punto en blanco, esa parte de la línea no se dibuja.
+      Valores esperados para el grupo normativo seleccionado. Elija <b>Gemini</b> o <b>ChatGPT</b> y use <b>Analizar con IA</b> para que la IA estime la curva esperada a partir de las tablas NEURONORMA del grupo y redacte un análisis, o <b>Rellenar con P50</b> para usar directamente la mediana normativa (Ens 2–4 se interpolan, ya que NEURONORMA solo publica Ens 1, Ens 5 y el total). Puede editar cualquier valor; si deja un punto en blanco, esa parte de la línea no se dibuja.
     </div>
     <div id="expectedInputs" class="expected-row"></div>
 
     <div class="cfg-grid no-print">
       <div>
-        <label>Clave API de Gemini</label>
+        <label>Inteligencia artificial</label>
+        <select id="aiProvider" data-nosave style="max-width:none;width:100%;font-size:12px;padding:4px;">
+          <option value="gemini">Gemini (Google)</option>
+          <option value="openai">ChatGPT (OpenAI)</option>
+        </select>
+      </div>
+      <div></div><div></div>
+      <div>
+        <label id="geminiKeyLabel">Clave API de Gemini</label>
         <input type="password" id="geminiKey" data-nosave placeholder="AIza…" autocomplete="off">
       </div>
       <div>
         <label>Modelo</label>
-        <input type="text" id="geminiModel" data-nosave list="geminiModels" value="gemini-flash-latest">
-        <datalist id="geminiModels">
-          <option value="gemini-flash-latest"><option value="gemini-pro-latest">
-          <option value="gemini-2.5-flash"><option value="gemini-2.5-pro">
-        </datalist>
+        <input type="text" id="geminiModel" data-nosave list="aiModels" value="gemini-flash-latest">
+        <datalist id="aiModels"></datalist>
       </div>
       <label class="remember"><input type="checkbox" id="geminiRemember" data-nosave> Recordar clave en este navegador</label>
     </div>
-    <div class="note no-print">La clave se usa solo desde su navegador para llamar a la API de Gemini y nunca se incluye en el archivo de avance ni en el .docx. A Gemini se envían edad, sexo, escolaridad, puntuaciones y normas; no se envían nombre, apellidos ni expediente.</div>
+    <div class="note no-print">La clave se usa solo desde su navegador para llamar a la API de Gemini u OpenAI y nunca se incluye en el archivo de avance ni en el .docx. Cada IA guarda su propia clave y modelo. A la IA se envían edad, sexo, escolaridad, puntuaciones y normas; no se envían nombre, apellidos ni expediente.</div>
 
     <div class="toolbar no-print" style="justify-content:flex-start;margin:12px 0 4px;">
-      <button class="amber primary" id="btnGemini" onclick="analyzeWithGemini()">Analizar con Gemini</button>
+      <button class="amber primary" id="btnGemini" onclick="analyzeWithAI()">Analizar con Gemini</button>
       <button class="amber" onclick="fillExpectedP50(true)">Rellenar con P50 NEURONORMA</button>
     </div>
     <div class="gemini-status" id="geminiStatus"></div>
 
     <canvas id="learningCanvas" width="900" height="420" style="width:100%;max-width:900px;display:block;margin:14px auto;background:#fff;border:1px solid var(--line-soft);border-radius:3px;"></canvas>
 
-    <h3>Análisis de la curva (Gemini · editable)</h3>
-    <textarea class="analysis" id="geminiAnalisis" placeholder="Aquí aparecerá el análisis generado por Gemini. Puede editarlo; se guarda con el avance y se incluye en el .docx."></textarea>
+    <h3>Análisis de la curva (IA · editable)</h3>
+    <textarea class="analysis" id="geminiAnalisis" placeholder="Aquí aparecerá el análisis generado por la IA (Gemini o ChatGPT). Puede editarlo; se guarda con el avance y se incluye en el .docx."></textarea>
 
     <div class="toolbar" style="justify-content:center;margin-top:12px;">
       <button onclick="exportChart('png')">Descargar PNG (alta resolución)</button>
@@ -1029,8 +1034,6 @@ function exportSerialChart(format){
 
 /* ================== AUTOGUARDADO / AVANCES ================== */
 const STORAGE_KEY = 'bne_aprendizaje_palabras_v2';
-const KEY_STORAGE = 'bne_gemini_key';
-const MODEL_STORAGE = 'bne_gemini_model';
 
 function saveableControls(){
   return [...document.querySelectorAll('.wrap input, .wrap select, .wrap textarea')]
@@ -1181,57 +1184,143 @@ Responde SOLO con JSON válido con esta forma exacta:
 {"esperado":[10 números],"justificacion":"1-2 frases sobre cómo estimaste la curva esperada","analisis":"texto del análisis clínico"}`;
 }
 
-async function analyzeWithGemini(){
+const AI = {
+  gemini: {name:'Gemini', keyLabel:'Clave API de Gemini', placeholder:'AIza…', defaultModel:'gemini-flash-latest',
+           models:['gemini-flash-latest','gemini-pro-latest','gemini-2.5-flash','gemini-2.5-pro'],
+           keyHelp:'Google AI Studio → Get API key'},
+  openai: {name:'ChatGPT', keyLabel:'Clave API de OpenAI (ChatGPT)', placeholder:'sk-…', defaultModel:'gpt-5-mini',
+           models:['gpt-5-mini','gpt-5','gpt-5.1','gpt-4.1','gpt-4o-mini'],
+           keyHelp:'platform.openai.com → API keys; requiere saldo en la API, la suscripción ChatGPT Plus no la incluye'}
+};
+let curProv = 'gemini';
+const provKey = p => 'bne_ai_key_' + p, provModel = p => 'bne_ai_model_' + p, PROV_STORAGE = 'bne_ai_provider';
+const aiMem = {gemini:{key:'',model:''}, openai:{key:'',model:''}};
+
+function applyProviderUI(){
+  const cfg = AI[curProv];
+  document.getElementById('aiProvider').value = curProv;
+  document.getElementById('geminiKeyLabel').textContent = cfg.keyLabel;
+  const k = document.getElementById('geminiKey');
+  k.placeholder = cfg.placeholder;
+  k.value = aiMem[curProv].key || storageGet(provKey(curProv)) || '';
+  document.getElementById('geminiRemember').checked = !!storageGet(provKey(curProv));
+  document.getElementById('geminiModel').value = aiMem[curProv].model || storageGet(provModel(curProv)) || cfg.defaultModel;
+  document.getElementById('aiModels').innerHTML = cfg.models.map(m=>`<option value="${m}">`).join('');
+  document.getElementById('btnGemini').textContent = 'Analizar con ' + cfg.name;
+}
+function switchProvider(){
+  const p = document.getElementById('aiProvider').value;
+  if(p === curProv || !AI[p]) return;
+  aiMem[curProv] = {key: document.getElementById('geminiKey').value.trim(), model: document.getElementById('geminiModel').value.trim()};
+  curProv = p;
+  storageSet(PROV_STORAGE, p);
+  applyProviderUI();
+  setGeminiStatus('');
+}
+
+function parseAIJson(text){
+  text = String(text || '').trim().replace(/^```(?:json)?\s*|\s*```$/g,'');
+  try{ return JSON.parse(text); }
+  catch(e){
+    const a = text.indexOf('{'), b = text.lastIndexOf('}');
+    if(a >= 0 && b > a) return JSON.parse(text.slice(a, b+1));
+    throw new Error('la respuesta no es JSON válido');
+  }
+}
+
+async function callGemini(key, model, prompt){
+  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model.replace(/^models\//,''))}:generateContent`, {
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-goog-api-key':key},
+    body: JSON.stringify({
+      contents:[{role:'user', parts:[{text: prompt}]}],
+      generationConfig:{temperature:0.2, responseMimeType:'application/json'}
+    })
+  });
+  const data = await res.json().catch(()=>({}));
+  if(!res.ok) throw new Error((data.error && data.error.message) || ('HTTP ' + res.status));
+  const cand = data.candidates && data.candidates[0];
+  const text = cand && cand.content && cand.content.parts ? cand.content.parts.filter(p=>!p.thought).map(p=>p.text||'').join('') : '';
+  if(!text) throw new Error('no devolvió contenido' + (cand && cand.finishReason ? ' (' + cand.finishReason + ')' : '') + '.');
+  return text;
+}
+
+async function callOpenAI(key, model, prompt){
+  const body = {
+    model,
+    messages:[
+      {role:'system', content:'Eres un neuropsicólogo clínico. Respondes únicamente con un objeto JSON válido.'},
+      {role:'user', content: prompt}
+    ],
+    response_format:{type:'json_object'}
+  };
+  // Los modelos de razonamiento (gpt-5, o1, o3, o4) solo aceptan la temperatura por defecto.
+  if(!/^(gpt-5|o\d)/i.test(model)) body.temperature = 0.2;
+  const res = await fetch('https://api.openai.com/v1/chat/completions', {
+    method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':'Bearer ' + key},
+    body: JSON.stringify(body)
+  });
+  const data = await res.json().catch(()=>({}));
+  if(!res.ok){
+    const msg = (data.error && data.error.message) || ('HTTP ' + res.status);
+    if(res.status === 429 && /quota/i.test(msg)) throw new Error(msg + ' (la cuenta de la API no tiene saldo; ChatGPT Plus no incluye la API)');
+    throw new Error(msg);
+  }
+  const ch = data.choices && data.choices[0];
+  const text = ch && ch.message ? ch.message.content : '';
+  if(!text) throw new Error('no devolvió contenido' + (ch && ch.finish_reason ? ' (' + ch.finish_reason + ')' : '') + '.');
+  return text;
+}
+
+async function analyzeWithAI(){
+  const cfg = AI[curProv];
   const g = currentGroup();
   if(!g){ setGeminiStatus('Seleccione primero un grupo normativo (capture la edad del paciente).', true); return; }
   const key = document.getElementById('geminiKey').value.trim();
-  if(!key){ setGeminiStatus('Escriba su clave API de Gemini (Google AI Studio → Get API key).', true); document.getElementById('geminiKey').focus(); return; }
-  const model = (document.getElementById('geminiModel').value.trim() || 'gemini-flash-latest').replace(/^models\//,'');
+  if(!key){ setGeminiStatus('Escriba su ' + cfg.keyLabel.charAt(0).toLowerCase() + cfg.keyLabel.slice(1) + ' (' + cfg.keyHelp + ').', true); document.getElementById('geminiKey').focus(); return; }
+  const model = document.getElementById('geminiModel').value.trim() || cfg.defaultModel;
   rememberGemini();
   recalcAll();
   const btn = document.getElementById('btnGemini');
   btn.disabled = true;
-  setGeminiStatus('Consultando a Gemini (' + model + ')…');
+  setGeminiStatus('Consultando a ' + cfg.name + ' (' + model + ')…');
   try{
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
-      method:'POST',
-      headers:{'Content-Type':'application/json','x-goog-api-key':key},
-      body: JSON.stringify({
-        contents:[{role:'user', parts:[{text: buildGeminiPrompt(g)}]}],
-        generationConfig:{temperature:0.2, responseMimeType:'application/json'}
-      })
-    });
-    const data = await res.json().catch(()=>({}));
-    if(!res.ok) throw new Error((data.error && data.error.message) || ('HTTP ' + res.status));
-    const cand = data.candidates && data.candidates[0];
-    const text = cand && cand.content && cand.content.parts ? cand.content.parts.filter(p=>!p.thought).map(p=>p.text||'').join('') : '';
-    if(!text) throw new Error('Gemini no devolvió contenido' + (cand && cand.finishReason ? ' (' + cand.finishReason + ')' : '') + '.');
-    const json = JSON.parse(text.replace(/^```(?:json)?\s*|\s*```$/g,''));
+    const prompt = buildGeminiPrompt(g);
+    const text = curProv === 'openai' ? await callOpenAI(key, model, prompt) : await callGemini(key, model, prompt);
+    const json = parseAIJson(text);
     const esp = Array.isArray(json.esperado) ? json.esperado.map(v=> v===null ? null : parseFloat(v)) : null;
-    if(!esp || esp.length !== 10 || esp.some(v=> v!==null && isNaN(v))) throw new Error('La respuesta no trae 10 valores esperados válidos.');
+    if(!esp || esp.length !== 10 || esp.some(v=> v!==null && isNaN(v))) throw new Error('la respuesta no trae 10 valores esperados válidos.');
     setExpected(esp);
     const ta = document.getElementById('geminiAnalisis');
-    ta.value = (json.analisis || '').trim() + (json.justificacion ? '\n\nCurva esperada: ' + json.justificacion.trim() : '');
+    ta.value = (json.analisis || '').trim() + (json.justificacion ? '\n\nCurva esperada: ' + json.justificacion.trim() : '') + '\n\n(Generado con ' + cfg.name + ' · ' + model + ')';
     onAnyChange();
-    setGeminiStatus('Listo: valores esperados y análisis generados por Gemini (' + model + ') para el grupo ' + g.id + '. Revíselos antes de usarlos en el informe.');
+    setGeminiStatus('Listo: valores esperados y análisis generados por ' + cfg.name + ' (' + model + ') para el grupo ' + g.id + '. Revíselos antes de usarlos en el informe.');
   }catch(e){
-    setGeminiStatus('Error con Gemini: ' + e.message, true);
+    setGeminiStatus('Error con ' + cfg.name + ': ' + e.message, true);
   }finally{
     btn.disabled = false;
   }
 }
+const analyzeWithGemini = analyzeWithAI;
 
 function rememberGemini(){
-  const rem = document.getElementById('geminiRemember').checked;
-  storageSet(MODEL_STORAGE, document.getElementById('geminiModel').value.trim());
-  if(rem) storageSet(KEY_STORAGE, document.getElementById('geminiKey').value.trim());
-  else storageDel(KEY_STORAGE);
+  const key = document.getElementById('geminiKey').value.trim();
+  const model = document.getElementById('geminiModel').value.trim();
+  aiMem[curProv] = {key, model};
+  storageSet(provModel(curProv), model);
+  if(document.getElementById('geminiRemember').checked && key) storageSet(provKey(curProv), key);
+  else storageDel(provKey(curProv));
 }
 function restoreGemini(){
-  const k = storageGet(KEY_STORAGE);
-  if(k){ document.getElementById('geminiKey').value = k; document.getElementById('geminiRemember').checked = true; }
-  const m = storageGet(MODEL_STORAGE);
-  if(m) document.getElementById('geminiModel').value = m;
+  // migración de la versión anterior (solo Gemini)
+  const oldK = storageGet('bne_gemini_key'), oldM = storageGet('bne_gemini_model');
+  if(oldK && !storageGet(provKey('gemini'))) storageSet(provKey('gemini'), oldK);
+  if(oldM && !storageGet(provModel('gemini'))) storageSet(provModel('gemini'), oldM);
+  storageDel('bne_gemini_key'); storageDel('bne_gemini_model');
+  const p = storageGet(PROV_STORAGE);
+  if(p && AI[p]) curProv = p;
+  applyProviderUI();
 }
 
 /* ================== EXPORTACIÓN A WORD / GOOGLE DOCS ================== */
@@ -1505,7 +1594,8 @@ function onAnyChange(){
 document.addEventListener('input', ev=>{
   const t = ev.target;
   if(t.hasAttribute && t.hasAttribute('data-nosave')){
-    if(t.id === 'geminiModel' || t.id === 'geminiRemember' || t.id === 'geminiKey') rememberGemini();
+    if(t.id === 'aiProvider') switchProvider();
+    else if(t.id === 'geminiModel' || t.id === 'geminiRemember' || t.id === 'geminiKey') rememberGemini();
     return;
   }
   if(t.id === 'p-edad'){
@@ -1516,7 +1606,11 @@ document.addEventListener('input', ev=>{
 });
 document.addEventListener('change', ev=>{
   const t = ev.target;
-  if(t.hasAttribute && t.hasAttribute('data-nosave')){ if(t.id !== 'loadFile') rememberGemini(); return; }
+  if(t.hasAttribute && t.hasAttribute('data-nosave')){
+    if(t.id === 'aiProvider') switchProvider();
+    else if(t.id !== 'loadFile') rememberGemini();
+    return;
+  }
   onAnyChange();
 });
 

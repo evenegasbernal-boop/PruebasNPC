@@ -92,6 +92,13 @@
   .ai-status.err{color:var(--danger);}
   canvas.chart{width:100%;max-width:900px;display:block;margin:14px auto;background:#fff;border:1px solid var(--line-soft);border-radius:3px;}
   .btn-row{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;}
+  textarea.paste{width:100%;min-height:70px;border:1px dashed var(--accent);border-radius:3px;padding:8px 10px;font-family:'Helvetica Neue',Arial,sans-serif;font-size:12px;background:#f8fbfb;resize:vertical;}
+  .imp-opts{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end;margin:10px 0;font-family:'Helvetica Neue',Arial,sans-serif;font-size:12px;}
+  .imp-opts label{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:#7a8890;margin-bottom:3px;}
+  .imp-opts select{font-size:12px;padding:3px 4px;border:1px solid var(--line);border-radius:2px;}
+  .imp-preview{font-family:'Helvetica Neue',Arial,sans-serif;font-size:12px;margin-top:8px;}
+  .imp-preview table td,.imp-preview table th{padding:3px 6px;font-size:11.5px;}
+  .imp-preview .bad{color:var(--danger);font-weight:600;}
   @media print{
     .toolbar,.cfg-grid,.no-print{display:none !important;}
     body{padding:0;background:#fff;}
@@ -146,6 +153,30 @@
       </div>
       <div class="norm-info" id="normInfo"></div>
     </div>
+  </section>
+
+  <section class="no-print">
+    <h2>Importar respuestas de Google Forms / hoja de cálculo</h2>
+    <div class="note" style="font-style:normal;color:#5b6b73">En la hoja de respuestas seleccione la fila completa del paciente (clic en el número de fila), cópiela con Ctrl+C (⌘+C) y péguela aquí con Ctrl+V. Se toma el número entre paréntesis de cada respuesta, p. ej. "A menudo (2)" → 2; también reconoce el texto sin número.</div>
+    <textarea class="paste" id="pasteRow" data-nosave placeholder="Pegue aquí la fila copiada de Google Sheets / Excel…"></textarea>
+    <div class="imp-opts">
+      <div><label>Destino</label>
+        <select id="pasteSet" data-nosave><option value="school">Escuela (maestros)</option><option value="home">Hogar (padres)</option></select></div>
+      <div><label>Orden de las preguntas en el formulario</label>
+        <select id="pasteOrder" data-nosave>
+          <option value="auto">Automático según el número de respuestas</option>
+          <option value="paper">IA (9) · deterioro IA (6) · HI (9) · deterioro HI (6)</option>
+          <option value="sym-first">IA (9) · HI (9) · deterioro IA (6) · deterioro HI (6)</option>
+          <option value="sym-imp1">IA (9) · HI (9) · deterioro único (6), se copia a IA y HI</option>
+          <option value="sym-only">Solo síntomas: IA (9) · HI (9)</option>
+        </select></div>
+      <label style="display:flex;gap:5px;align-items:center;text-transform:none;font-size:12px;color:#3a4a52;letter-spacing:0"><input type="checkbox" id="pasteData" data-nosave checked> Llenar también nombre, grado, informante y fecha</label>
+      <div style="margin-left:auto" class="btn-row">
+        <button class="small" onclick="pasteFromClipboard()">Pegar del portapapeles</button>
+        <button class="small primary" onclick="applyPastedRow()">Colocar respuestas</button>
+      </div>
+    </div>
+    <div class="imp-preview" id="pastePreview"></div>
   </section>
 
   <div id="informants"></div>
@@ -1218,6 +1249,120 @@ document.addEventListener('keydown', ev=>{
 });
 
 window.addEventListener('pagehide', ()=>{ if(saveTimer){ clearTimeout(saveTimer); storageSet(STORAGE_KEY, JSON.stringify(collectState())); } });
+
+/* ================== IMPORTAR FILA DE GOOGLE FORMS / SHEETS ================== */
+function parseTsv(text){
+  const rows = []; let row = [], cell = '', q = false;
+  text = String(text || '').replace(/\r\n?/g, '\n');
+  for(let i=0;i<text.length;i++){
+    const ch = text[i];
+    if(q){
+      if(ch === '"'){ if(text[i+1] === '"'){ cell += '"'; i++; } else q = false; }
+      else cell += ch;
+    } else if(ch === '"' && cell === '') q = true;
+    else if(ch === '\t'){ row.push(cell); cell = ''; }
+    else if(ch === '\n'){ row.push(cell); rows.push(row); row = []; cell = ''; }
+    else cell += ch;
+  }
+  row.push(cell); rows.push(row);
+  return rows.filter(r => r.some(c => c.trim() !== ''));
+}
+const ANSWER_WORDS = [
+  [/con mucha frecuencia|muy a menudo|problema grave|^grave$/i, 3],
+  [/a menudo|problema moderado|^moderado$/i, 2],
+  [/en ocasiones|problema menor|^menor$/i, 1],
+  [/nunca|rara vez|ning[uú]n problema|^ninguno$/i, 0]
+];
+function answerValue(cell, strict){
+  const c = String(cell || '').trim();
+  if(!c) return null;
+  const m = c.match(/\(\s*([0-3])\s*\)\s*$/) || (!strict && c.match(/^([0-3])$/));
+  if(m) return parseInt(m[1], 10);
+  for(const [re, v] of ANSWER_WORDS) if(re.test(c)) return v;
+  return null;
+}
+function parseDateCell(c){
+  const m = String(c || '').trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if(m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+  const m2 = String(c || '').trim().match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m2 ? `${m2[1]}-${m2[2]}-${m2[3]}` : '';
+}
+function readPasted(){
+  const rows = parseTsv(val('pasteRow'));
+  if(!rows.length) return null;
+  // Si se pegó también el encabezado, se usa la última fila con respuestas
+  const dataRows = rows.filter(r => r.some(c => answerValue(c, true) !== null));
+  const row = dataRows.length ? dataRows[dataRows.length - 1] : rows[rows.length - 1];
+  const first = row.findIndex(c => answerValue(c, true) !== null);
+  const info = first > 0 ? row.slice(0, first).map(c => c.trim()) : [];
+  const answers = first >= 0 ? row.slice(first).filter(c => c.trim() !== '').map(c => ({raw: c.trim(), v: answerValue(c)})) : [];
+  let order = val('pasteOrder');
+  if(order === 'auto') order = answers.length >= 30 ? 'paper' : answers.length >= 24 ? 'sym-imp1' : 'sym-only';
+  return {info, answers, order};
+}
+function mapAnswers(p){
+  const a = p.answers, out = [];
+  const take = (sc, kind, n, start) => { for(let i=0;i<n;i++) out.push({sc, kind, i, cell: a[start+i]}); };
+  if(p.order === 'paper'){ take('IA','sym',9,0); take('IA','imp',6,9); take('HI','sym',9,15); take('HI','imp',6,24); }
+  else if(p.order === 'sym-first'){ take('IA','sym',9,0); take('HI','sym',9,9); take('IA','imp',6,18); take('HI','imp',6,24); }
+  else if(p.order === 'sym-imp1'){ take('IA','sym',9,0); take('HI','sym',9,9); take('IA','imp',6,18); for(let i=0;i<6;i++) out.push({sc:'HI', kind:'imp', i, cell:a[18+i]}); }
+  else { take('IA','sym',9,0); take('HI','sym',9,9); }
+  return out;
+}
+const ORDER_N = {paper:30, 'sym-first':30, 'sym-imp1':24, 'sym-only':18};
+function previewPaste(){
+  const box = $('pastePreview');
+  const p = readPasted();
+  if(!p){ box.innerHTML = ''; return; }
+  const set = val('pasteSet'), v = formVersion(), map = mapAnswers(p);
+  const need = ORDER_N[p.order];
+  let msg = `Se encontraron <b>${p.answers.length}</b> respuestas`;
+  if(p.info.length) msg += ` · Datos: <b>${p.info.map(escapeHtml).join(' · ')}</b>`;
+  if(p.answers.length !== need) msg += ` · <span class="bad">El orden elegido espera ${need}; revise la vista previa o cambie el orden.</span>`;
+  const bad = p.answers.filter(x => x.v === null).length;
+  if(bad) msg += ` · <span class="bad">${bad} respuesta(s) sin número reconocible.</span>`;
+  const rowsHtml = map.map(m=>{
+    const label = m.kind === 'sym' ? `${(m.sc==='IA'?1:10)+m.i}. ${FORMS[set][v][m.sc][m.i]}` : `Deterioro ${m.sc} · ${FORMS[set][v].IMP[m.i]}`;
+    const cell = m.cell;
+    return `<tr><td class="txt">${escapeHtml(label)}</td><td class="txt" style="color:#7a8890">${cell ? escapeHtml(cell.raw) : '<span class="bad">falta</span>'}</td><td><b>${cell && cell.v !== null ? cell.v : '<span class="bad">?</span>'}</b></td></tr>`;
+  }).join('');
+  box.innerHTML = `<div>${msg}</div><details style="margin-top:6px"><summary style="cursor:pointer">Ver cómo se colocará cada respuesta</summary><div class="table-wrap"><table><thead><tr><th style="text-align:left">Ítem en la calculadora</th><th style="text-align:left">Texto pegado</th><th>Valor</th></tr></thead><tbody>${rowsHtml}</tbody></table></div></details>`;
+}
+function setRadio(name, v){
+  document.querySelectorAll(`input[type=radio][name="${name}"]`).forEach(el => el.checked = (v !== null && parseInt(el.value,10) === v));
+}
+function applyPastedRow(){
+  const p = readPasted();
+  if(!p || !p.answers.length){ alert('No se encontraron respuestas en el texto pegado. Copie la fila completa desde la hoja de respuestas.'); return; }
+  const set = val('pasteSet');
+  const need = ORDER_N[p.order];
+  if(p.answers.length !== need && !confirm(`Se encontraron ${p.answers.length} respuestas y el orden elegido espera ${need}. ¿Colocarlas de todos modos? (Revise la vista previa.)`)) return;
+  if(R[set].applied && !confirm('La versión para ' + (set==='home'?'el hogar':'la escuela') + ' ya tiene respuestas. ¿Reemplazarlas?')) return;
+  document.querySelectorAll(`#sec-${set} input[type=radio]`).forEach(el => el.checked = false);
+  mapAnswers(p).forEach(m=>{
+    const v = m.cell ? m.cell.v : null;
+    setRadio(m.kind === 'sym' ? `${set}-${m.sc}-${m.i}` : `${set}-imp${m.sc}-${m.i}`, v);
+  });
+  if($('pasteData').checked && p.info.length){
+    let info = p.info.slice();
+    const d = parseDateCell(info[0]);
+    if(d){ $(`${set}-fecha`).value = d; info = info.slice(1); }
+    const [nombre, grado, informante] = info;
+    if(nombre && !val('p-nombre') && !val('p-apellidos')) $('p-nombre').value = nombre;
+    if(grado && !val('p-grado')) $('p-grado').value = grado;
+    if(informante) $(`${set}-informante`).value = informante;
+  }
+  onAnyChange();
+  $(`sec-${set}`).scrollIntoView({behavior:'smooth', block:'start'});
+  $('pastePreview').innerHTML = `<span class="ok-mark">✓</span> Respuestas colocadas en la versión para ${set==='home'?'el hogar':'la escuela'}. Revise que coincidan con el formulario.`;
+}
+async function pasteFromClipboard(){
+  try{
+    const t = await navigator.clipboard.readText();
+    $('pasteRow').value = t; previewPaste();
+  }catch(e){ $('pasteRow').focus(); alert('El navegador no permitió leer el portapapeles. Haga clic en el cuadro y pegue con Ctrl+V (⌘+V).'); }
+}
+['pasteRow','pasteSet','pasteOrder'].forEach(id => ['input','change'].forEach(ev => document.addEventListener(ev, e => { if(e.target.id === id) previewPaste(); })));
 
 buildInformants();
 restoreAI();

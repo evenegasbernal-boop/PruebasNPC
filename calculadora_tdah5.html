@@ -429,6 +429,7 @@ function buildInformants(){
       <h2><span>${SET_TITLE[set]}</span><span class="prog" id="${set}-prog"></span></h2>
       <div class="inf-grid">${who}
         <div><label>Fecha de llenado</label><input class="field-input" type="date" id="${set}-fecha"></div>
+        <div style="grid-column:1/-1"><label>Escuela / observaciones del informante</label><input class="field-input" type="text" id="${set}-obs"></div>
         <div class="no-print" style="align-self:end;text-align:right"><button class="small" onclick="clearSet('${set}')">Borrar respuestas</button></div>
       </div>
       <div class="note">${set==='home'
@@ -1101,8 +1102,8 @@ async function exportDocx(){
     body.push(Table(pRows, {noBorder: true}));
     const a = ageIdx(), s = sexKey();
     const inf = [];
-    if(R.home.applied) inf.push('Hogar: ' + ([val('home-por'), val('home-informante')].filter(Boolean).join(', ') || 'padres') + (val('home-fecha') ? ' (' + val('home-fecha') + ')' : ''));
-    if(R.school.applied) inf.push('Escuela: ' + (val('school-informante') || 'maestro(a)') + (val('school-informante').includes(' / ') ? ' (calificación más alta por reactivo)' : '') + (val('school-grupo') ? ', ' + val('school-grupo') : '') + (val('school-fecha') ? ' (' + val('school-fecha') + ')' : ''));
+    if(R.home.applied) inf.push('Hogar: ' + ([val('home-por'), val('home-informante')].filter(Boolean).join(', ') || 'padres') + (val('home-fecha') ? ' (' + val('home-fecha') + ')' : '') + (val('home-obs') ? '. Observaciones: ' + val('home-obs') : ''));
+    if(R.school.applied) inf.push('Escuela: ' + (val('school-informante') || 'maestro(a)') + (val('school-informante').includes(' / ') ? ' (calificación más alta por reactivo)' : '') + (val('school-obs') ? '. Observaciones: ' + val('school-obs') : '') + (val('school-grupo') ? ', ' + val('school-grupo') : '') + (val('school-fecha') ? ' (' + val('school-fecha') + ')' : ''));
     body.push(P([T('Normas: ', {font: SANS, size: 8.5, color: C.light}), T(s && a !== null ? `${s==='m'?'niños':'niñas'} de ${AGE_BANDS[a]} años` : 'no disponibles (faltan sexo o edad válidos)', {font: SANS, size: 8.5, bold: true}),
                  T('   Formularios: ', {font: SANS, size: 8.5, color: C.light}), T(v==='adol'?'adolescentes':'niños', {font: SANS, size: 8.5, bold: true})], {before: 120}));
     if(inf.length) body.push(P([T('Informantes: ', {font: SANS, size: 8.5, color: C.light}), T(inf.join(' · '), {font: SANS, size: 8.5, bold: true})], {before: 40}));
@@ -1297,9 +1298,13 @@ function readPasted(){
   if(!dataRows.length) return {info: [], answers: [], rows: [], order: 'sym-only'};
   const parsed = dataRows.map(row=>{
     const first = row.findIndex(c => answerValue(c, true) !== null);
+    let last = row.length - 1;
+    while(last > first && answerValue(row[last], true) === null) last--;
     return {
       info: first > 0 ? row.slice(0, first).map(c => c.trim()) : [],
-      answers: row.slice(first).filter(c => c.trim() !== '').map(c => ({raw: c.trim(), v: answerValue(c)}))
+      // una celda vacía entre respuestas cuenta como reactivo sin contestar (no recorre las demás)
+      answers: row.slice(first, last + 1).map(c => ({raw: c.trim(), v: answerValue(c)})),
+      extra: row.slice(last + 1).map(c => c.trim()).filter(Boolean)
     };
   });
   // Varias filas: en cada reactivo se conserva la calificación más alta
@@ -1332,7 +1337,9 @@ function previewPaste(){
   let msg = `Se encontraron <b>${p.answers.length}</b> respuestas`;
   if(p.rows.length > 1) msg += ` en <b>${p.rows.length} filas</b> (${p.rows.map(r => escapeHtml(infoParts(r.info).informante || 'sin nombre')).join(', ')}): en cada reactivo se colocará la calificación más alta`;
   else if(p.info.length) msg += ` · Datos: <b>${p.info.map(escapeHtml).join(' · ')}</b>`;
-  if(R[set].applied && $('pasteMerge').checked) msg += ` · Ya hay respuestas en esta versión: se combinarán conservando la más alta.`;
+  const extra = p.rows.flatMap(r => r.extra);
+  if(extra.length) msg += ` · Se guardarán como observaciones: <i>${extra.map(escapeHtml).join(' · ')}</i>`;
+  if(R[set].applied) msg += ` · <span class="bad">Esta versión ya tiene respuestas (${escapeHtml(val(set + '-informante') || 'sin nombre')}); al colocar se le preguntará si combinar o reemplazar.</span>`;
   if(p.answers.length !== need) msg += ` · <span class="bad">El orden elegido espera ${need}; revise la vista previa o cambie el orden.</span>`;
   const bad = p.answers.filter(x => x.v === null).length;
   if(bad) msg += ` · <span class="bad">${bad} respuesta(s) sin número reconocible.</span>`;
@@ -1352,14 +1359,30 @@ function infoParts(info){
   if(d){ fecha = d; i = i.slice(1); }
   return {fecha, nombre: i[0] || '', grado: i[1] || '', informante: i[2] || ''};
 }
+function normName(s){ return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().split(/[^a-zñ]+/).filter(w => w.length > 2); }
+function sameStudent(a, b){
+  const A = normName(a), B = new Set(normName(b));
+  const common = A.filter(w => B.has(w)).length;
+  return common >= Math.min(2, A.length, B.size);
+}
 function applyPastedRow(){
   const p = readPasted();
   if(!p || !p.answers.length){ alert('No se encontraron respuestas en el texto pegado. Copie la fila completa desde la hoja de respuestas.'); return; }
   const set = val('pasteSet');
   const need = ORDER_N[p.order];
   if(p.answers.length !== need && !confirm(`Se encontraron ${p.answers.length} respuestas y el orden elegido espera ${need}. ¿Colocarlas de todos modos? (Revise la vista previa.)`)) return;
-  const merge = R[set].applied && $('pasteMerge').checked;
-  if(R[set].applied && !merge && !confirm('La versión para ' + (set==='home'?'el hogar':'la escuela') + ' ya tiene respuestas. ¿Reemplazarlas?')) return;
+  const setName = set==='home' ? 'el hogar' : 'la escuela';
+  const pastedName = p.rows.map(r => infoParts(r.info).nombre).find(Boolean) || '';
+  const curName = patientName();
+  if(pastedName && curName && !sameStudent(pastedName, curName) &&
+     !confirm(`Atención: el alumno de la fila pegada ("${pastedName}") no coincide con el paciente capturado ("${curName}"). ¿Continuar de todos modos?`)) return;
+  let merge = false;
+  if(R[set].applied){
+    const prev = val(`${set}-informante`) || 'sin nombre';
+    if($('pasteMerge').checked && confirm(`La versión para ${setName} ya tiene respuestas (informante: ${prev}).\n\nAceptar = COMBINAR con ellas (otra maestra del mismo alumno; en cada reactivo queda la calificación más alta).\nCancelar = no combinar.`)) merge = true;
+    else if(!confirm(`¿REEMPLAZAR las respuestas que ya había en la versión para ${setName} por las de la fila pegada?`)) return;
+  }
+  if(!merge) document.querySelectorAll(`#sec-${set} input[type=radio]`).forEach(el => el.checked = false);
   let raised = 0;
   mapAnswers(p).forEach(m=>{
     const name = m.kind === 'sym' ? `${set}-${m.sc}-${m.i}` : `${set}-imp${m.sc}-${m.i}`;
@@ -1380,6 +1403,8 @@ function applyPastedRow(){
     if(grado && !val('p-grado')) $('p-grado').value = grado;
     const names = (merge ? val(`${set}-informante`).split(' / ') : []).concat(parts.map(x => x.informante)).map(x => x.trim()).filter(Boolean);
     if(names.length) $(`${set}-informante`).value = [...new Set(names)].join(' / ');
+    const obs = (merge ? val(`${set}-obs`).split(' · ') : []).concat(p.rows.flatMap(r => r.extra)).map(x => x.trim()).filter(Boolean);
+    $(`${set}-obs`).value = [...new Set(obs)].join(' · ');
   }
   onAnyChange();
   $(`sec-${set}`).scrollIntoView({behavior:'smooth', block:'start'});

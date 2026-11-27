@@ -157,7 +157,7 @@
 
   <section class="no-print">
     <h2>Importar respuestas de Google Forms / hoja de cálculo</h2>
-    <div class="note" style="font-style:normal;color:#5b6b73">En la hoja de respuestas seleccione la fila completa del paciente (clic en el número de fila), cópiela con Ctrl+C (⌘+C) y péguela aquí con Ctrl+V. Se toma el número entre paréntesis de cada respuesta, p. ej. "A menudo (2)" → 2; también reconoce el texto sin número.</div>
+    <div class="note" style="font-style:normal;color:#5b6b73">En la hoja de respuestas seleccione la fila completa del paciente (clic en el número de fila), cópiela con Ctrl+C (⌘+C) y péguela aquí con Ctrl+V. Se toma el número entre paréntesis de cada respuesta, p. ej. "A menudo (2)" → 2; también reconoce el texto sin número. Si son dos maestras, copie y pegue las dos filas juntas (o una después de la otra): en cada reactivo se coloca la calificación más alta.</div>
     <textarea class="paste" id="pasteRow" data-nosave placeholder="Pegue aquí la fila copiada de Google Sheets / Excel…"></textarea>
     <div class="imp-opts">
       <div><label>Destino</label>
@@ -171,6 +171,7 @@
           <option value="sym-only">Solo síntomas: IA (9) · HI (9)</option>
         </select></div>
       <label style="display:flex;gap:5px;align-items:center;text-transform:none;font-size:12px;color:#3a4a52;letter-spacing:0"><input type="checkbox" id="pasteData" data-nosave checked> Llenar también nombre, grado, informante y fecha</label>
+      <label style="display:flex;gap:5px;align-items:center;text-transform:none;font-size:12px;color:#3a4a52;letter-spacing:0"><input type="checkbox" id="pasteMerge" data-nosave checked> Si ya hay respuestas (otra maestra), combinar y dejar la calificación más alta</label>
       <div style="margin-left:auto" class="btn-row">
         <button class="small" onclick="pasteFromClipboard()">Pegar del portapapeles</button>
         <button class="small primary" onclick="applyPastedRow()">Colocar respuestas</button>
@@ -956,7 +957,8 @@ function buildPrompt(){
   const lines = [];
   SETS.forEach(set=>{
     if(!R[set].applied){ lines.push(`${SET_LABEL[set]}: no aplicada.`); return; }
-    const inf = set==='home' ? [val('home-por'), val('home-informante')].filter(Boolean).join(', ') : 'maestro(a)';
+    const multi = val(`${set}-informante`).includes(' / ');
+    const inf = (set==='home' ? [val('home-por'), val('home-informante')].filter(Boolean).join(', ') : (multi ? 'varias maestras' : 'maestro(a)')) + (multi ? '; en cada reactivo se usó la calificación más alta entre informantes' : '');
     lines.push(`${SET_LABEL[set]} (informante: ${inf || 'no indicado'}):`);
     ['IA','HI','TOT'].forEach(sc=>{
       const x = R[set][sc];
@@ -1100,7 +1102,7 @@ async function exportDocx(){
     const a = ageIdx(), s = sexKey();
     const inf = [];
     if(R.home.applied) inf.push('Hogar: ' + ([val('home-por'), val('home-informante')].filter(Boolean).join(', ') || 'padres') + (val('home-fecha') ? ' (' + val('home-fecha') + ')' : ''));
-    if(R.school.applied) inf.push('Escuela: ' + (val('school-informante') || 'maestro(a)') + (val('school-grupo') ? ', ' + val('school-grupo') : '') + (val('school-fecha') ? ' (' + val('school-fecha') + ')' : ''));
+    if(R.school.applied) inf.push('Escuela: ' + (val('school-informante') || 'maestro(a)') + (val('school-informante').includes(' / ') ? ' (calificación más alta por reactivo)' : '') + (val('school-grupo') ? ', ' + val('school-grupo') : '') + (val('school-fecha') ? ' (' + val('school-fecha') + ')' : ''));
     body.push(P([T('Normas: ', {font: SANS, size: 8.5, color: C.light}), T(s && a !== null ? `${s==='m'?'niños':'niñas'} de ${AGE_BANDS[a]} años` : 'no disponibles (faltan sexo o edad válidos)', {font: SANS, size: 8.5, bold: true}),
                  T('   Formularios: ', {font: SANS, size: 8.5, color: C.light}), T(v==='adol'?'adolescentes':'niños', {font: SANS, size: 8.5, bold: true})], {before: 120}));
     if(inf.length) body.push(P([T('Informantes: ', {font: SANS, size: 8.5, color: C.light}), T(inf.join(' · '), {font: SANS, size: 8.5, bold: true})], {before: 40}));
@@ -1290,15 +1292,26 @@ function parseDateCell(c){
 function readPasted(){
   const rows = parseTsv(val('pasteRow'));
   if(!rows.length) return null;
-  // Si se pegó también el encabezado, se usa la última fila con respuestas
+  // Se ignora el encabezado; cada fila con respuestas es un informante (p. ej., dos maestras)
   const dataRows = rows.filter(r => r.some(c => answerValue(c, true) !== null));
-  const row = dataRows.length ? dataRows[dataRows.length - 1] : rows[rows.length - 1];
-  const first = row.findIndex(c => answerValue(c, true) !== null);
-  const info = first > 0 ? row.slice(0, first).map(c => c.trim()) : [];
-  const answers = first >= 0 ? row.slice(first).filter(c => c.trim() !== '').map(c => ({raw: c.trim(), v: answerValue(c)})) : [];
+  if(!dataRows.length) return {info: [], answers: [], rows: [], order: 'sym-only'};
+  const parsed = dataRows.map(row=>{
+    const first = row.findIndex(c => answerValue(c, true) !== null);
+    return {
+      info: first > 0 ? row.slice(0, first).map(c => c.trim()) : [],
+      answers: row.slice(first).filter(c => c.trim() !== '').map(c => ({raw: c.trim(), v: answerValue(c)}))
+    };
+  });
+  // Varias filas: en cada reactivo se conserva la calificación más alta
+  const n = Math.max(...parsed.map(r => r.answers.length));
+  const answers = Array.from({length: n}, (_,i)=>{
+    const cs = parsed.map(r => r.answers[i]).filter(Boolean);
+    const vs = cs.map(c => c.v).filter(v => v !== null);
+    return {raw: cs.map(c => c.raw).join(' | '), v: vs.length ? Math.max(...vs) : null};
+  });
   let order = val('pasteOrder');
-  if(order === 'auto') order = answers.length >= 30 ? 'paper' : answers.length >= 24 ? 'sym-imp1' : 'sym-only';
-  return {info, answers, order};
+  if(order === 'auto') order = n >= 30 ? 'paper' : n >= 24 ? 'sym-imp1' : 'sym-only';
+  return {info: parsed[0].info, answers, rows: parsed, order};
 }
 function mapAnswers(p){
   const a = p.answers, out = [];
@@ -1317,7 +1330,9 @@ function previewPaste(){
   const set = val('pasteSet'), v = formVersion(), map = mapAnswers(p);
   const need = ORDER_N[p.order];
   let msg = `Se encontraron <b>${p.answers.length}</b> respuestas`;
-  if(p.info.length) msg += ` · Datos: <b>${p.info.map(escapeHtml).join(' · ')}</b>`;
+  if(p.rows.length > 1) msg += ` en <b>${p.rows.length} filas</b> (${p.rows.map(r => escapeHtml(infoParts(r.info).informante || 'sin nombre')).join(', ')}): en cada reactivo se colocará la calificación más alta`;
+  else if(p.info.length) msg += ` · Datos: <b>${p.info.map(escapeHtml).join(' · ')}</b>`;
+  if(R[set].applied && $('pasteMerge').checked) msg += ` · Ya hay respuestas en esta versión: se combinarán conservando la más alta.`;
   if(p.answers.length !== need) msg += ` · <span class="bad">El orden elegido espera ${need}; revise la vista previa o cambie el orden.</span>`;
   const bad = p.answers.filter(x => x.v === null).length;
   if(bad) msg += ` · <span class="bad">${bad} respuesta(s) sin número reconocible.</span>`;
@@ -1331,30 +1346,46 @@ function previewPaste(){
 function setRadio(name, v){
   document.querySelectorAll(`input[type=radio][name="${name}"]`).forEach(el => el.checked = (v !== null && parseInt(el.value,10) === v));
 }
+function infoParts(info){
+  let i = info.slice(), fecha = '';
+  const d = parseDateCell(i[0]);
+  if(d){ fecha = d; i = i.slice(1); }
+  return {fecha, nombre: i[0] || '', grado: i[1] || '', informante: i[2] || ''};
+}
 function applyPastedRow(){
   const p = readPasted();
   if(!p || !p.answers.length){ alert('No se encontraron respuestas en el texto pegado. Copie la fila completa desde la hoja de respuestas.'); return; }
   const set = val('pasteSet');
   const need = ORDER_N[p.order];
   if(p.answers.length !== need && !confirm(`Se encontraron ${p.answers.length} respuestas y el orden elegido espera ${need}. ¿Colocarlas de todos modos? (Revise la vista previa.)`)) return;
-  if(R[set].applied && !confirm('La versión para ' + (set==='home'?'el hogar':'la escuela') + ' ya tiene respuestas. ¿Reemplazarlas?')) return;
-  document.querySelectorAll(`#sec-${set} input[type=radio]`).forEach(el => el.checked = false);
+  const merge = R[set].applied && $('pasteMerge').checked;
+  if(R[set].applied && !merge && !confirm('La versión para ' + (set==='home'?'el hogar':'la escuela') + ' ya tiene respuestas. ¿Reemplazarlas?')) return;
+  let raised = 0;
   mapAnswers(p).forEach(m=>{
-    const v = m.cell ? m.cell.v : null;
-    setRadio(m.kind === 'sym' ? `${set}-${m.sc}-${m.i}` : `${set}-imp${m.sc}-${m.i}`, v);
+    const name = m.kind === 'sym' ? `${set}-${m.sc}-${m.i}` : `${set}-imp${m.sc}-${m.i}`;
+    let v = m.cell ? m.cell.v : null;
+    if(merge){
+      const old = radioVal(name);
+      if(old !== null && (v === null || old > v)) v = old;
+      else if(old !== null && v > old) raised++;
+    }
+    setRadio(name, v);
   });
-  if($('pasteData').checked && p.info.length){
-    let info = p.info.slice();
-    const d = parseDateCell(info[0]);
-    if(d){ $(`${set}-fecha`).value = d; info = info.slice(1); }
-    const [nombre, grado, informante] = info;
+  if($('pasteData').checked){
+    const parts = p.rows.map(r => infoParts(r.info));
+    const fechas = parts.map(x => x.fecha).filter(Boolean).sort();
+    if(fechas.length) $(`${set}-fecha`).value = fechas[fechas.length - 1];
+    const nombre = parts.map(x => x.nombre).find(Boolean), grado = parts.map(x => x.grado).find(Boolean);
     if(nombre && !val('p-nombre') && !val('p-apellidos')) $('p-nombre').value = nombre;
     if(grado && !val('p-grado')) $('p-grado').value = grado;
-    if(informante) $(`${set}-informante`).value = informante;
+    const names = (merge ? val(`${set}-informante`).split(' / ') : []).concat(parts.map(x => x.informante)).map(x => x.trim()).filter(Boolean);
+    if(names.length) $(`${set}-informante`).value = [...new Set(names)].join(' / ');
   }
   onAnyChange();
   $(`sec-${set}`).scrollIntoView({behavior:'smooth', block:'start'});
-  $('pastePreview').innerHTML = `<span class="ok-mark">✓</span> Respuestas colocadas en la versión para ${set==='home'?'el hogar':'la escuela'}. Revise que coincidan con el formulario.`;
+  const nInf = p.rows.length + (merge ? 1 : 0);
+  $('pastePreview').innerHTML = `<span class="ok-mark">✓</span> Respuestas colocadas en la versión para ${set==='home'?'el hogar':'la escuela'}` +
+    (nInf > 1 ? ` combinando ${merge && p.rows.length === 1 ? 'con las ya capturadas' : nInf + ' informantes'}: en cada reactivo quedó la calificación más alta${merge ? ` (${raised} reactivo(s) subieron)` : ''}.` : '.') + ' Revise que coincidan con los formularios.';
 }
 async function pasteFromClipboard(){
   try{
@@ -1362,7 +1393,7 @@ async function pasteFromClipboard(){
     $('pasteRow').value = t; previewPaste();
   }catch(e){ $('pasteRow').focus(); alert('El navegador no permitió leer el portapapeles. Haga clic en el cuadro y pegue con Ctrl+V (⌘+V).'); }
 }
-['pasteRow','pasteSet','pasteOrder'].forEach(id => ['input','change'].forEach(ev => document.addEventListener(ev, e => { if(e.target.id === id) previewPaste(); })));
+['pasteRow','pasteSet','pasteOrder','pasteMerge'].forEach(id => ['input','change'].forEach(ev => document.addEventListener(ev, e => { if(e.target.id === id) previewPaste(); })));
 
 buildInformants();
 restoreAI();

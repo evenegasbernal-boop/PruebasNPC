@@ -1,0 +1,1233 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Calculadora · Escala TDAH-5</title>
+<style>
+  :root{
+    --ink:#1c2a33; --paper:#fbfaf7; --panel:#ffffff; --line:#d8dee2; --line-soft:#e9edf0;
+    --accent:#3d6b70; --accent-soft:#e4eeee; --amber:#a9752c; --amber-soft:#f6ecdc;
+    --danger:#a5473a; --danger-soft:#f6e6e3; --media:#eef0ee;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:'Iowan Old Style','Palatino Linotype',Palatino,Georgia,serif;font-size:14px;line-height:1.45;padding:28px 20px 80px;}
+  .wrap{max-width:1180px;margin:0 auto;}
+  h1{font-size:22px;letter-spacing:.02em;margin:0 0 2px;font-weight:600;}
+  .subtitle{font-family:'Helvetica Neue',Arial,sans-serif;font-size:11.5px;color:#5b6b73;text-transform:uppercase;letter-spacing:.09em;margin-bottom:18px;}
+  h2{font-family:'Helvetica Neue',Arial,sans-serif;font-size:12.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);border-bottom:1px solid var(--line);padding-bottom:6px;margin:0 0 12px;display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap;}
+  h3{font-family:'Helvetica Neue',Arial,sans-serif;font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:#5b6b73;margin:18px 0 6px;}
+  section{background:var(--panel);border:1px solid var(--line);border-radius:3px;padding:16px 18px 20px;margin-bottom:16px;}
+  .patient-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px 16px;}
+  .patient-grid label,.cfg-grid label,.inf-grid label{display:block;font-family:'Helvetica Neue',Arial,sans-serif;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:#7a8890;margin-bottom:3px;}
+  .field-input,.patient-grid select,.inf-grid select{width:100%;border:none;border-bottom:1px solid var(--line);background:transparent;padding:3px 1px;font-family:inherit;font-size:13.5px;color:var(--ink);border-radius:0;}
+  .field-input:focus{outline:none;border-bottom-color:var(--accent);}
+  .inf-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px 16px;margin-bottom:6px;}
+  table{border-collapse:collapse;width:100%;font-size:13px;}
+  th,td{border:1px solid var(--line-soft);padding:5px 7px;text-align:center;}
+  th{background:var(--accent-soft);font-family:'Helvetica Neue',Arial,sans-serif;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--accent);font-weight:600;}
+  td.txt{text-align:left;}
+  td.num{font-family:'Helvetica Neue',Arial,sans-serif;font-size:11px;color:#7a8890;width:34px;}
+  td.rowlabel{text-align:right;font-family:'Helvetica Neue',Arial,sans-serif;font-size:10.5px;text-transform:uppercase;color:#5b6b73;}
+  tr.totals td{background:#f4f6f5;font-weight:600;}
+  .items th.opt{width:78px;font-size:9.5px;line-height:1.2;}
+  .items td.opt{padding:0;width:78px;}
+  .items td.opt label{display:flex;align-items:center;justify-content:center;gap:5px;padding:7px 0;cursor:pointer;font-family:'Helvetica Neue',Arial,sans-serif;font-size:11px;color:#7a8890;}
+  .items td.opt:hover{background:#f4f6f5;}
+  .items td.opt.on{background:var(--accent-soft);}
+  .items td.opt.on label{color:var(--accent);font-weight:700;}
+  .items td.opt.on.hi{background:var(--amber-soft);}
+  .items td.opt.on.hi label{color:var(--amber);}
+  .items tr.missing td.txt{box-shadow:inset 3px 0 0 var(--danger);}
+  input[type=radio]{width:15px;height:15px;accent-color:var(--accent);cursor:pointer;margin:0;}
+  .table-wrap{overflow-x:auto;}
+  .toolbar{display:flex;gap:10px;justify-content:flex-end;margin-bottom:14px;flex-wrap:wrap;align-items:center;}
+  button{font-family:'Helvetica Neue',Arial,sans-serif;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;border:1px solid var(--accent);background:var(--panel);color:var(--accent);padding:7px 14px;border-radius:3px;cursor:pointer;}
+  button.primary{background:var(--accent);color:#fff;}
+  button.amber{border-color:var(--amber);color:var(--amber);}
+  button.amber.primary{background:var(--amber);color:#fff;}
+  button.small{font-size:10px;padding:4px 9px;}
+  button:hover{opacity:.85;}
+  button:disabled{opacity:.5;cursor:wait;}
+  .save-status{font-family:'Helvetica Neue',Arial,sans-serif;font-size:10.5px;color:#7a8890;margin-right:auto;}
+  .save-status b{color:var(--accent);font-weight:600;}
+  .note{font-family:'Helvetica Neue',Arial,sans-serif;font-size:10.5px;color:#8a969c;font-style:italic;margin-top:6px;}
+  .prog{font-size:10.5px;color:#7a8890;letter-spacing:.04em;text-transform:none;font-weight:400;}
+  .prog b{color:var(--ink);}
+  .subtotal-line{display:flex;gap:18px;align-items:center;font-family:'Helvetica Neue',Arial,sans-serif;font-size:11px;color:#5b6b73;margin-top:6px;flex-wrap:wrap;}
+  .subtotal-line b{color:var(--ink);font-size:13px;}
+  .norm-bar{display:flex;gap:16px;align-items:flex-end;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px dotted var(--line);font-family:'Helvetica Neue',Arial,sans-serif;font-size:12px;}
+  .norm-bar select{font-size:12px;padding:3px 4px;border:1px solid var(--line);border-radius:2px;}
+  .norm-bar label{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:#7a8890;margin-bottom:3px;}
+  .norm-info{color:#5b6b73;}
+  .norm-info b{color:var(--ink);}
+  .warn{color:var(--danger);font-style:italic;}
+  .summary td,.summary th{padding:7px 9px;}
+  .summary td.direct{background:var(--accent-soft);font-weight:700;color:var(--accent);font-size:14px;}
+  .summary td.pct{font-family:'Helvetica Neue',Arial,sans-serif;font-size:12px;font-weight:600;}
+  .summary tr.sep td{border-top:2px solid var(--line);}
+  .cls{display:inline-block;border-radius:10px;padding:1px 8px;font-family:'Helvetica Neue',Arial,sans-serif;font-size:10.5px;text-transform:uppercase;letter-spacing:.03em;white-space:nowrap;}
+  .cls-ok{background:var(--media);color:#5b6b73;}
+  .cls-risk{background:var(--amber-soft);color:var(--amber);}
+  .cls-clin{background:var(--danger-soft);color:var(--danger);}
+  .cls-na{background:#f4f6f5;color:#9aa4a9;}
+  .rule{border:1px solid var(--line-soft);border-radius:4px;padding:10px 12px;margin-bottom:10px;}
+  .rule-head{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap;font-weight:600;}
+  .rule ul{margin:6px 0 0;padding-left:18px;font-family:'Helvetica Neue',Arial,sans-serif;font-size:12px;color:#3a4a52;}
+  .rule li{margin:2px 0;}
+  .ok-mark{color:var(--accent);font-weight:700;}
+  .no-mark{color:var(--danger);font-weight:700;}
+  .na-mark{color:#9aa4a9;}
+  .chips{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:6px;}
+  .chip{flex:1;min-width:150px;border-radius:4px;padding:8px 12px;font-family:'Helvetica Neue',Arial,sans-serif;background:#f4f6f5;}
+  .chip .l{display:block;font-size:9.5px;text-transform:uppercase;letter-spacing:.05em;color:#5b6b73;}
+  .chip .v{display:block;font-size:19px;font-weight:700;margin-top:2px;}
+  .chip.met{background:var(--danger-soft);color:var(--danger);}
+  .chip.met .l{color:var(--danger);}
+  .cfg-grid{display:grid;grid-template-columns:1fr 2fr 1fr auto;gap:10px 16px;align-items:end;margin:12px 0 4px;padding:10px 12px;background:#f4f6f5;border-radius:4px;}
+  .cfg-grid input,.cfg-grid select{width:100%;border:1px solid var(--line);border-radius:2px;padding:4px 6px;font-family:'Helvetica Neue',Arial,sans-serif;font-size:12px;background:#fff;}
+  .cfg-grid .remember{font-family:'Helvetica Neue',Arial,sans-serif;font-size:11px;color:#5b6b73;display:flex;gap:5px;align-items:center;white-space:nowrap;}
+  textarea.analysis{width:100%;min-height:160px;border:1px solid var(--line);border-radius:3px;padding:10px 12px;font-family:inherit;font-size:13.5px;line-height:1.5;color:var(--ink);background:#fff;resize:vertical;}
+  .ai-status{font-family:'Helvetica Neue',Arial,sans-serif;font-size:11.5px;color:#5b6b73;min-height:16px;margin:6px 0;}
+  .ai-status.err{color:var(--danger);}
+  canvas.chart{width:100%;max-width:900px;display:block;margin:14px auto;background:#fff;border:1px solid var(--line-soft);border-radius:3px;}
+  .btn-row{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;}
+  @media print{
+    .toolbar,.cfg-grid,.no-print{display:none !important;}
+    body{padding:0;background:#fff;}
+    section{break-inside:avoid;border:1px solid #999;}
+  }
+  @media (max-width:900px){
+    body{padding:18px 16px 60px;}
+    .patient-grid,.inf-grid{grid-template-columns:repeat(2,1fr);}
+    .cfg-grid{grid-template-columns:1fr;}
+    .items th.opt,.items td.opt{width:52px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Escala de Evaluación del TDAH-5 para niños y adolescentes</h1>
+  <div class="subtitle">DuPaul, Power, Anastopoulos y Reid (2016) · Versiones hogar y escuela · Síntomas, deterioro y puntos de corte clínicos</div>
+
+  <div class="toolbar">
+    <span class="save-status" id="saveStatus">Autoguardado activo</span>
+    <button onclick="downloadProgress()">Descargar avance (.json)</button>
+    <button onclick="document.getElementById('loadFile').click()">Cargar avance</button>
+    <input type="file" id="loadFile" accept=".json,application/json" style="display:none" data-nosave onchange="loadProgressFile(this)">
+    <button onclick="downloadTablesCsv()">Descargar tablas (.csv)</button>
+    <button onclick="exportDocx()" id="btnDocx">Exportar a Word / Docs (.docx)</button>
+    <button onclick="window.print()">Imprimir</button>
+    <button class="primary" onclick="clearAll()">Limpiar todo</button>
+  </div>
+
+  <section>
+    <h2>Datos del paciente</h2>
+    <div class="patient-grid">
+      <div><label>Nombre</label><input class="field-input" type="text" id="p-nombre"></div>
+      <div><label>Apellidos</label><input class="field-input" type="text" id="p-apellidos"></div>
+      <div><label>Expediente</label><input class="field-input" type="text" id="p-expediente"></div>
+      <div><label>Examinador(a)</label><input class="field-input" type="text" id="p-examinador"></div>
+      <div><label>Sexo</label><select id="p-sexo"><option value=""></option><option value="m">Niño (masculino)</option><option value="f">Niña (femenino)</option></select></div>
+      <div><label>Edad (años)</label><input class="field-input" type="number" min="5" max="17" id="p-edad"></div>
+      <div><label>Grado escolar</label><input class="field-input" type="text" id="p-grado"></div>
+      <div><label>Fecha de aplicación</label><input class="field-input" type="date" id="p-fecha"></div>
+      <div><label>País de origen</label><input class="field-input" type="text" id="p-pais"></div>
+    </div>
+    <div class="norm-bar">
+      <div>
+        <label>Versión de los formularios</label>
+        <select id="formVersion">
+          <option value="auto" selected>Automática según edad</option>
+          <option value="child">Niños (5–10 años)</option>
+          <option value="adol">Adolescentes (11–17 años)</option>
+        </select>
+      </div>
+      <div class="norm-info" id="normInfo"></div>
+    </div>
+  </section>
+
+  <div id="informants"></div>
+
+  <section>
+    <h2>Resumen de puntuaciones de síntomas</h2>
+    <div class="table-wrap"><table class="summary" id="sumTable"></table></div>
+    <div class="note">Percentiles según las hojas de valoración de síntomas por sexo y edad (5–7, 8–10, 11–13, 14–17). Si la puntuación cae entre dos filas se toma el percentil inferior; si coincide con varias filas, el más alto. Clasificación orientativa: rango típico &lt;P80 · elevado (en riesgo) P80–P92 · clínicamente significativo ≥P93. Síntomas presentes = ítems calificados 2 (a menudo) o 3 (muy a menudo).</div>
+    <canvas class="chart" id="symCanvas" width="900" height="420"></canvas>
+    <div class="btn-row no-print"><button class="small" onclick="exportChart('sym')">Descargar gráfica (.png)</button></div>
+  </section>
+
+  <section>
+    <h2>Deterioro funcional</h2>
+    <div class="table-wrap"><table class="summary" id="impTable"></table></div>
+    <div class="note">Cada dominio se califica de 0 (ningún problema) a 3 (problema grave), una vez para los síntomas de inatención y otra para los de hiperactividad-impulsividad. Una calificación de 2 o 3 indica deterioro clínicamente relevante. El manual ofrece una sola hoja de deterioro por sexo y contexto; se aplica a ambas calificaciones.</div>
+    <canvas class="chart" id="impCanvas" width="900" height="400"></canvas>
+    <div class="btn-row no-print"><button class="small" onclick="exportChart('imp')">Descargar gráfica (.png)</button></div>
+  </section>
+
+  <section>
+    <h2>Puntos de corte para diagnosticar y descartar TDAH (Tabla 5-5)</h2>
+    <div id="rules"></div>
+    <div class="note">Estudio basado en la clínica; requiere ambos informantes (padres y maestros). La tabla original escribe "percentil 923" en el diagnóstico de TDAH/COM, aquí se toma como P93. La fila "Detección de TDAH/I" usa puntos de corte "menor que", por lo que funciona como regla para descartar.</div>
+  </section>
+
+  <section>
+    <h2>Conteo de síntomas DSM-5</h2>
+    <div class="chips" id="dsmChips"></div>
+    <div class="note" id="dsmNote"></div>
+  </section>
+
+  <section>
+    <h2>Interpretación clínica</h2>
+    <div class="cfg-grid no-print">
+      <div>
+        <label>IA</label>
+        <select id="aiProvider" data-nosave>
+          <option value="gemini">Gemini (Google)</option>
+          <option value="openai">ChatGPT (OpenAI)</option>
+        </select>
+      </div>
+      <div>
+        <label id="aiKeyLabel">Clave API de Gemini</label>
+        <input type="password" id="aiKey" data-nosave placeholder="AIza…" autocomplete="off">
+      </div>
+      <div>
+        <label>Modelo</label>
+        <input type="text" id="aiModel" data-nosave list="aiModels" value="gemini-flash-latest">
+        <datalist id="aiModels"></datalist>
+      </div>
+      <label class="remember"><input type="checkbox" id="aiRemember" data-nosave> Recordar clave en este navegador</label>
+    </div>
+    <div class="note no-print">La clave se usa solo desde su navegador y nunca se guarda en el archivo de avance ni en el .docx. A la IA se envían edad, sexo, grado, puntuaciones, percentiles, deterioro y resultados de los puntos de corte; no se envían nombre, apellidos ni expediente.</div>
+    <div class="btn-row no-print" style="margin-top:10px;">
+      <button class="amber primary" id="btnAI" onclick="analyzeWithAI()">Analizar con Gemini</button>
+    </div>
+    <div class="ai-status no-print" id="aiStatus"></div>
+    <textarea class="analysis" id="analisis" placeholder="Interpretación de los resultados. Puede escribirla o generarla con la IA y editarla; se guarda con el avance y se incluye en el .docx."></textarea>
+  </section>
+
+</div>
+<script>
+/* Normas: Escala de Evaluación del TDAH-5 (DuPaul et al., 2016), hojas de valoración de síntomas y deterioro por sexo, contexto y edad */
+const SYM_NORMS = {"home_m":{"pct":["99+","99","98","97","96","95","94","93","92","91","90","89","88","87","86","85","84","80","75","50","25","10","1"],"HI":[[27,24,19,18,17,17,17,17,16,15,15,13,13,12,12,10,10,9,8,5,2,0,0],[27,26,20,20,19,18,17,16,16,15,14,13,11,10,10,9,9,8,7,3,1,0,0],[26,22,19,18,17,15,14,13,12,11,10,10,9,9,9,9,9,7,6,2,0,0,0],[21,16,15,13,12,10,9,9,9,8,8,7,7,6,5,5,5,4,3,1,0,0,0]],"IA":[[27,25,23,22,21,18,17,17,16,15,14,14,12,11,11,10,10,9,9,5,2,0,0],[27,27,25,21,20,17,16,16,16,15,14,12,12,12,11,11,11,9,9,4,2,0,0],[27,27,27,25,22,21,21,19,18,18,17,16,15,15,15,14,13,12,10,6,1,0,0],[27,26,25,21,20,19,18,18,17,16,16,15,14,13,12,11,11,10,9,4,1,0,0]],"TOT":[[50,45,41,38,38,35,32,31,29,27,27,26,25,24,22,20,20,18,16,10,4,0,0],[53,49,44,38,36,35,33,31,30,29,28,25,24,22,21,19,19,17,14,8,3,1,0],[52,47,43,38,36,34,31,30,28,26,25,24,23,22,22,21,21,19,17,8,2,0,0],[47,39,37,34,30,27,26,25,25,22,21,20,19,18,18,17,16,14,11,5,2,0,0]]},"home_f":{"pct":["99+","99","98","97","96","95","94","93","92","91","90","89","88","87","86","85","84","80","75","50","25","10","1"],"HI":[[27,25,20,17,16,15,14,13,12,12,11,10,9,9,8,8,8,7,6,3,1,0,0],[26,23,21,15,13,11,10,9,9,9,9,8,8,8,7,7,7,6,5,2,0,0,0],[22,16,15,14,13,12,12,11,9,9,8,8,7,7,7,6,6,5,4,1,0,0,0],[20,19,12,11,9,9,8,8,7,6,6,6,5,5,5,4,4,3,3,1,0,0,0]],"IA":[[26,23,21,18,17,16,15,14,13,13,12,12,12,12,11,10,10,9,8,3,1,0,0],[27,26,22,18,17,16,15,14,13,13,12,12,11,11,11,10,10,9,8,3,1,0,0],[27,25,21,20,19,17,15,15,13,13,12,12,11,11,10,10,10,9,8,3,1,0,0],[25,23,19,18,18,18,17,17,15,14,14,13,13,12,12,11,11,9,7,3,0,0,0]],"TOT":[[50,45,43,35,32,29,27,25,24,22,21,21,20,18,18,18,17,15,13,7,3,0,0],[53,47,37,36,30,28,25,21,21,20,20,18,18,17,17,16,16,14,12,6,2,0,0],[38,35,32,29,29,27,24,23,22,21,20,19,18,18,18,17,16,13,11,5,1,0,0],[42,36,32,28,25,24,23,21,20,20,19,18,18,17,16,15,15,12,10,4,1,0,0]]},"school_m":{"pct":["99+","99","98","97","96","95","94","93","92","91","90","89","88","87","86","85","84","80","75","50","25","10","1"],"HI":[[27,27,26,25,24,23,21,20,19,18,18,18,18,17,17,17,17,14,13,6,1,0,0],[27,27,26,23,22,22,21,20,19,19,18,17,17,16,16,16,15,14,12,5,0,0,0],[26,24,23,22,21,19,19,18,18,17,16,15,15,14,14,13,13,10,9,3,0,0,0],[27,26,23,19,17,16,14,14,13,13,12,12,11,11,10,10,10,8,6,1,0,0,0]],"IA":[[27,27,27,26,25,25,24,22,22,21,20,20,20,20,18,18,18,17,14,9,2,0,0],[27,27,27,27,26,26,24,24,24,23,22,22,20,19,19,19,18,18,16,9,2,0,0],[27,27,27,26,25,25,25,24,24,23,23,22,21,21,20,20,19,18,15,8,2,0,0],[27,27,27,24,22,21,21,20,20,19,18,17,16,16,15,15,15,13,12,6,1,0,0]],"TOT":[[50,50,48,45,43,42,42,40,39,38,38,37,36,35,34,33,32,30,26,14,5,1,0],[54,54,50,48,44,44,42,40,39,38,36,36,35,35,34,33,32,30,27,15,3,0,0],[52,50,46,45,41,39,38,38,37,36,35,33,33,32,32,31,30,29,25,12,3,0,0],[54,53,44,39,37,35,32,31,30,29,27,26,25,25,25,24,23,20,18,8,2,0,0]]},"school_f":{"pct":["99+","99","98","97","96","95","94","93","92","91","90","89","88","87","86","85","84","80","75","50","25","10","1"],"HI":[[24,24,21,20,19,17,16,15,15,14,14,14,14,14,13,12,11,9,8,2,0,0,0],[23,20,18,18,15,15,15,14,13,13,13,11,11,10,10,9,9,7,6,2,0,0,0],[27,23,18,15,13,13,12,11,11,10,9,9,9,9,9,8,8,6,4,1,0,0,0],[26,21,15,13,12,10,9,9,9,8,7,6,6,5,5,5,5,3,2,0,0,0,0]],"IA":[[24,24,23,23,22,20,19,18,18,17,17,17,16,16,16,15,15,13,11,3,0,0,0],[27,26,24,23,21,20,19,19,18,18,18,17,17,17,16,15,15,12,11,5,0,0,0],[27,26,25,24,23,22,22,21,20,19,18,17,16,16,15,14,14,12,10,3,0,0,0],[27,27,25,20,18,16,15,14,14,13,12,11,11,11,10,10,9,8,7,2,0,0,0]],"TOT":[[45,45,43,42,38,36,33,33,31,30,30,29,29,28,27,26,26,22,18,6,1,0,0],[48,41,40,37,35,33,31,31,30,29,28,27,25,24,24,23,22,20,17,7,1,0,0],[53,46,41,38,33,31,30,29,28,27,26,25,25,23,22,22,21,18,15,5,1,0,0],[52,46,33,31,29,25,23,22,21,20,19,18,16,16,14,14,14,11,9,3,0,0,0]]}};
+const IMP_NORMS = {"home_m":[[[65.0,90.0,98.0,99.5],[70.0,93.0,98.0,99.5],[65.0,93.0,99.0,99.5],[70.0,95.0,98.0,99.5]],[[70.0,93.0,98.0,99.5],[70.0,93.0,98.0,99.5],[75.0,93.0,99.0,99.5],[80.0,95.0,99.0,99.5]],[[70.0,90.0,95.0,99.5],[60.0,90.0,99.0,99.5],[55.0,85.0,98.0,99.5],[55.0,85.0,95.0,99.5]],[[70.0,90.0,95.0,99.5],[70.0,93.0,98.0,99.5],[60.0,85.0,95.0,99.5],[60.0,85.0,95.0,99.5]],[[65.0,85.0,95.0,99.5],[70.0,90.0,98.0,99.5],[75.0,90.0,98.0,99.5],[75.0,95.0,99.0,99.5]],[[75.0,95.0,98.0,99.5],[75.0,93.0,99.0,99.5],[70.0,93.0,99.5,99.5],[75.0,95.0,99.0,99.5]]],"home_f":[[[70.0,95.0,99.0,99.5],[70.0,95.0,99.0,99.5],[65.0,90.0,99.0,99.5],[60.0,85.0,95.0,99.5]],[[80.0,98.0,99.5,99.5],[75.0,95.0,99.0,99.5],[75.0,95.0,99.0,99.5],[70.0,90.0,98.0,99.5]],[[80.0,95.0,99.5,99.5],[75.0,95.0,99.0,99.5],[75.0,90.0,98.0,99.5],[60.0,90.0,98.0,99.5]],[[85.0,95.0,99.0,99.5],[75.0,95.0,98.0,99.5],[75.0,93.0,98.0,99.5],[65.0,85.0,98.0,99.5]],[[75.0,95.0,99.0,99.5],[80.0,98.0,99.5,99.5],[80.0,95.0,99.0,99.5],[85.0,95.0,98.0,99.5]],[[85.0,98.0,99.5,99.5],[75.0,95.0,99.5,99.5],[70.0,93.0,98.0,99.5],[65.0,93.0,98.0,99.5]]],"school_m":[[[60.0,85.0,98.0,99.5],[55.0,85.0,98.0,99.5],[65.0,85.0,98.0,99.5],[65.0,85.0,98.0,99.5]],[[45.0,80.0,98.0,99.5],[50.0,80.0,95.0,99.5],[60.0,85.0,98.0,99.5],[65.0,90.0,98.0,99.5]],[[45.0,75.0,90.0,99.5],[45.0,70.0,85.0,99.5],[40.0,70.0,90.0,99.5],[40.0,70.0,90.0,99.5]],[[40.0,70.0,90.0,99.5],[40.0,60.0,80.0,99.5],[45.0,70.0,90.0,99.5],[40.0,70.0,90.0,99.5]],[[40.0,70.0,90.0,99.5],[40.0,60.0,90.0,99.5],[50.0,80.0,95.0,99.5],[55.0,80.0,95.0,99.5]],[[50.0,80.0,98.0,99.5],[55.0,80.0,95.0,99.5],[60.0,85.0,98.0,99.5],[70.0,90.0,98.0,99.5]]],"school_f":[[[75.0,93.0,99.5,99.5],[75.0,93.0,99.0,99.5],[75.0,93.0,98.0,99.5],[80.0,93.0,99.0,99.5]],[[60.0,85.0,98.0,99.5],[60.0,90.0,99.0,99.5],[75.0,90.0,98.0,99.5],[80.0,98.0,99.0,99.5]],[[55.0,80.0,98.0,99.5],[60.0,80.0,95.0,99.5],[50.0,80.0,90.0,99.5],[65.0,90.0,98.0,99.5]],[[55.0,80.0,90.0,99.5],[55.0,75.0,93.0,99.5],[55.0,75.0,90.0,99.5],[65.0,85.0,98.0,99.5]],[[55.0,75.0,95.0,99.5],[65.0,85.0,95.0,99.5],[70.0,90.0,98.0,99.5],[85.0,93.0,98.0,99.5]],[[70.0,85.0,95.0,99.5],[65.0,90.0,98.0,99.5],[70.0,93.0,99.0,99.5],[75.0,93.0,99.0,99.5]]]};
+/* ================== FORMULARIOS ================== */
+const FORMS = {
+  home: {
+    child: {
+      IA: [
+        'Falla en prestar la debida atención a detalles o por descuido se cometen errores en las tareas escolares, o durante otras actividades',
+        'Tiene dificultades para mantener la atención en tareas o actividades recreativas',
+        'Parece no escuchar cuando se le habla directamente',
+        'No sigue las instrucciones y no termina las tareas escolares o los quehaceres',
+        'Tiene dificultad para organizar tareas y actividades',
+        'Evita, le disgusta o se muestra poco entusiasta en iniciar tareas que requieren un esfuerzo mental sostenido (p. ej., tareas escolares o quehaceres domésticos)',
+        'Pierde cosas necesarias para tareas o actividades (p. ej., materiales escolares, lápices, libros, gafas)',
+        'Se distrae con facilidad por estímulos externos',
+        'Olvida las actividades cotidianas (p. ej., hacer las tareas)'
+      ],
+      HI: [
+        'Juguetea o golpea con las manos o los pies o se retuerce en el asiento',
+        'Se levanta en situaciones en que se espera que permanezca sentado/a',
+        'Corretea o trepa en situaciones en las que no resulta apropiado',
+        'Es incapaz de jugar o de ocuparse tranquilamente en actividades recreativas',
+        'Está "ocupado/a", actuando como si "lo impulsara un motor"',
+        'Habla excesivamente',
+        'Responde inesperadamente o antes de que se haya concluido una pregunta',
+        'Le es difícil esperar su turno (p. ej., mientras espera en una fila)',
+        'Interrumpe o se inmiscuye con otros'
+      ],
+      IMP: ['Llevarse bien con familiares','Llevarse bien con otros niños','Completar o devolver las tareas escolares','Tener un buen desempeño académico en la escuela','Controlar su comportamiento en la escuela','Sentirse bien con él/ella mismo/a']
+    },
+    adol: {
+      IA: [
+        'Falla en prestar la debida atención a detalles o por descuido se cometen errores en las tareas escolares, en el trabajo o durante otras actividades',
+        'Tiene dificultades para mantener la atención en tareas o actividades recreativas (p. ej., tiene dificultad para mantener la atención en conversaciones en la lectura prolongada)',
+        'Parece no escuchar cuando se le habla directamente',
+        'No sigue las instrucciones y no termina las tareas escolares, los quehaceres o los deberes laborales',
+        'Tiene dificultad para organizar tareas y actividades',
+        'Evita, le disgusta o se muestra poco entusiasta en iniciar tareas que requieren un esfuerzo mental sostenido (p. ej., tareas escolares o quehaceres domésticos; preparación de informes)',
+        'Pierde cosas necesarias para tareas o actividades (p. ej., materiales escolares, lápices, libros, instrumentos, billetera, llaves, papeles del trabajo, gafas, móvil)',
+        'Se distrae con facilidad por estímulos externos',
+        'Olvida las actividades cotidianas (p. ej., hacer las tareas, hacer las diligencias, devolver las llamadas, acudir a las citas)'
+      ],
+      HI: [
+        'Juguetea o golpea con las manos o los pies o se retuerce en el asiento',
+        'Se levanta en situaciones en que se espera que permanezca sentado/a',
+        'Corretea o trepa en situaciones en las que no resulta apropiado o está inquieto',
+        'Es incapaz de jugar o de ocuparse tranquilamente en actividades recreativas',
+        'Está "ocupado/a", actuando como si "lo impulsara un motor" (p. ej., es incapaz de estar quieto/a o se siente incómodo/a estando quieto/a durante un tiempo prolongado)',
+        'Habla excesivamente',
+        'Responde inesperadamente o antes de que se haya concluido una pregunta',
+        'Le es difícil esperar su turno (p. ej., mientras espera en una fila)',
+        'Interrumpe o se inmiscuye con otros (p. ej., se mete en las conversaciones, juegos o actividades; puede inmiscuirse o adelantarse a lo que hacen otros)'
+      ],
+      IMP: ['Llevarse bien con familiares','Llevarse bien con otros adolescentes','Completar o devolver las tareas escolares','Tener un buen desempeño académico en la escuela','Controlar su comportamiento en la escuela','Sentirse bien con él/ella mismo/a']
+    }
+  },
+  school: {
+    child: {
+      IA: [
+        'No presta la debida atención a los detalles o comete errores por descuido durante las actividades escolares o en otras actividades',
+        'Le resulta difícil mantener la atención en tareas o actividades de juego',
+        'Parece no escuchar cuando se le habla directamente',
+        'No sigue las instrucciones y no logra terminar las tareas escolares',
+        'Le resulta difícil organizar tareas y actividades',
+        'Evita, le disgusta o se muestra renuente a participar en tareas que requieren un esfuerzo mental sostenido (p. ej., trabajo en clase o tareas escolares)',
+        'Pierde cosas que son necesarias para tareas o actividades (p. ej., materiales escolares, lápices, libros)',
+        'Es fácilmente distraído por estímulos extraños',
+        'Se muestra descuidado en las actividades cotidianas'
+      ],
+      HI: [
+        'Juguetea o golpea con las manos o los pies o se retuerce en el asiento',
+        'Se levanta del asiento en situaciones en que se espera que permanezca sentado',
+        'Corretea o trepa en situaciones en que es inapropiado hacerlo',
+        'Es incapaz de jugar o participar tranquilamente en actividades recreativas',
+        'Está en "movimiento continuo", como si estuviera "impulsado por un motor"',
+        'Habla demasiado',
+        'Suelta una respuesta antes de que se complete la pregunta',
+        'Le resulta difícil esperar su turno (p. ej., mientras espera en la fila)',
+        'Interrumpe o importuna a los demás'
+      ],
+      IMP: ['Llevarse bien con las autoridades escolares','Llevarse bien con otros niños','Completar o entregar las tareas escolares','En su desempeño académico en la escuela','Controlar su conducta en la escuela','Sentirse bien consigo mismo']
+    },
+    adol: {
+      IA: [
+        'No presta la debida atención a los detalles o comete errores por descuido en el trabajo escolar o en otras actividades',
+        'Le resulta difícil mantener la atención en tareas o actividades de juego (p. ej., le cuesta trabajo mantenerse concentrado durante las clases, conversaciones o lecturas largas)',
+        'No parece escuchar cuando se le habla directamente',
+        'No sigue instrucciones ni logra terminar el trabajo escolar',
+        'Le resulta difícil organizar tareas y actividades',
+        'Evita, le disgusta o se muestra renuente a participar en tareas que requieren esfuerzo mental sostenido (p. ej., trabajo en clase o tareas escolares, preparación de reportes)',
+        'Pierde cosas que son necesarias para tareas o actividades (p. ej., materiales escolares, lápices, libros)',
+        'Es fácilmente distraído por estímulos extraños o pensamientos no relacionados',
+        'Se muestra descuidado en las actividades cotidianas'
+      ],
+      HI: [
+        'Juguetea o golpea con las manos o los pies o se retuerce en el asiento',
+        'Se levanta del asiento en situaciones en que se espera que permanezca sentado',
+        'Corretea o trepa en situaciones en que es inapropiado hacerlo',
+        'Es incapaz de jugar o participar tranquilamente en actividades recreativas',
+        'Está en "movimiento continuo" como si estuviera "impulsado por un motor"',
+        'Habla demasiado',
+        'Suelta una respuesta antes de que se complete la pregunta',
+        'Le resulta difícil esperar su turno (p. ej., mientras espera en la fila)',
+        'Interrumpe o importuna a los demás (p. ej., se entromete en conversaciones, juegos o actividades; puede inmiscuirse o intervenir en lo que otros hacen)'
+      ],
+      IMP: ['Llevarse bien con las autoridades escolares','Llevarse bien con otros estudiantes','Completar o entregar las tareas escolares','En su desempeño académico en la escuela','Controlar su conducta en la escuela','Sentirse bien consigo mismo']
+    }
+  }
+};
+const RESP = {
+  home: ['Nunca o rara vez','En ocasiones','A menudo','Con mucha frecuencia'],
+  school: ['Nunca o rara vez','En ocasiones','A menudo','Muy a menudo']
+};
+const IMP_RESP = ['Ningún problema','Problema menor','Problema moderado','Problema grave'];
+const DOMAINS = {
+  home: ['Relaciones familiares','Relaciones con los pares','Tareas','Desempeño académico','Conducta','Autoestima'],
+  school: ['Relaciones con el maestro','Relaciones con los pares','Tareas','Desempeño académico','Conducta','Autoestima']
+};
+const DOMAIN_SHORT = ['Relación con adultos','Pares','Tareas','Desempeño académico','Conducta','Autoestima'];
+const SETS = ['home','school'];
+const SET_LABEL = {home:'Hogar (padres)', school:'Escuela (maestros)'};
+const SET_TITLE = {home:'Versión para el hogar — informante: padres o cuidadores', school:'Versión para la escuela — informante: maestro(a)'};
+const SC_LABEL = {IA:'Inatención', HI:'Hiperactividad-impulsividad', TOT:'Total'};
+const AGE_BANDS = ['5–7','8–10','11–13','14–17'];
+
+/* ================== UTILIDADES DE ESTADO ================== */
+const $ = id => document.getElementById(id);
+const val = id => { const el = $(id); return el ? el.value : ''; };
+function radioVal(name){
+  const el = document.querySelector(`input[type=radio][name="${name}"]:checked`);
+  return el ? parseInt(el.value, 10) : null;
+}
+function ageIdx(){
+  const a = parseFloat(val('p-edad'));
+  if(isNaN(a)) return null;
+  if(a >= 5 && a < 8) return 0;
+  if(a >= 8 && a < 11) return 1;
+  if(a >= 11 && a < 14) return 2;
+  if(a >= 14 && a < 18) return 3;
+  return null;
+}
+function formVersion(){
+  const v = val('formVersion');
+  if(v === 'child' || v === 'adol') return v;
+  const a = parseFloat(val('p-edad'));
+  return (!isNaN(a) && a >= 11) ? 'adol' : 'child';
+}
+function sexKey(){ const s = val('p-sexo'); return s === 'm' || s === 'f' ? s : null; }
+function escapeHtml(s){ return String(s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+/* ================== CONSTRUCCIÓN DE LA INTERFAZ ================== */
+function itemTable(set, sc, startNum){
+  const resp = RESP[set];
+  let h = `<div class="table-wrap"><table class="items"><thead><tr><th>#</th><th style="text-align:left">¿Con qué frecuencia ${set==='home'?'su hijo/a tiene':'exhibe el estudiante'} este comportamiento?</th>`;
+  resp.forEach((r,i)=> h += `<th class="opt">${i}<br>${r}</th>`);
+  h += '</tr></thead><tbody>';
+  for(let i=0;i<9;i++){
+    h += `<tr data-row="${set}-${sc}-${i}"><td class="num">${startNum+i}</td><td class="txt" id="txt-${set}-${sc}-${i}"></td>`;
+    for(let v=0;v<4;v++) h += `<td class="opt"><label><input type="radio" name="${set}-${sc}-${i}" value="${v}">${v}</label></td>`;
+    h += '</tr>';
+  }
+  h += `</tbody></table></div><div class="subtotal-line"><span>Respondidos: <b id="${set}-${sc}-n">0</b> / 9</span><span>Puntuación directa ${SC_LABEL[sc]}: <b id="${set}-${sc}-sum">0</b></span><span>Síntomas presentes (2–3): <b id="${set}-${sc}-cnt">0</b></span></div>`;
+  return h;
+}
+function impTable(set, sc){
+  let h = `<div class="table-wrap"><table class="items"><thead><tr><th>#</th><th style="text-align:left">¿En qué medida los nueve comportamientos anteriores le causan problemas ${set==='home'?'a su hijo/a':'a este estudiante'}?</th>`;
+  IMP_RESP.forEach((r,i)=> h += `<th class="opt">${i}<br>${r}</th>`);
+  h += '</tr></thead><tbody>';
+  for(let d=0;d<6;d++){
+    h += `<tr data-row="${set}-imp${sc}-${d}"><td class="num">${d+1}</td><td class="txt" id="txt-${set}-imp${sc}-${d}"></td>`;
+    for(let v=0;v<4;v++) h += `<td class="opt"><label><input type="radio" name="${set}-imp${sc}-${d}" value="${v}">${v}</label></td>`;
+    h += '</tr>';
+  }
+  return h + '</tbody></table></div>';
+}
+function buildInformants(){
+  let h = '';
+  SETS.forEach(set=>{
+    const who = set === 'home'
+      ? `<div><label>Completado por</label><select id="${set}-por"><option value=""></option><option>Madre</option><option>Padre</option><option>Abuela/o</option><option>Otro parentesco</option></select></div>
+         <div><label>Nombre del informante / otro parentesco</label><input class="field-input" type="text" id="${set}-informante"></div>`
+      : `<div><label>Llenado por (maestro/a)</label><input class="field-input" type="text" id="${set}-informante"></div>
+         <div><label>Materia o grupo</label><input class="field-input" type="text" id="${set}-grupo"></div>`;
+    h += `<section id="sec-${set}">
+      <h2><span>${SET_TITLE[set]}</span><span class="prog" id="${set}-prog"></span></h2>
+      <div class="inf-grid">${who}
+        <div><label>Fecha de llenado</label><input class="field-input" type="date" id="${set}-fecha"></div>
+        <div class="no-print" style="align-self:end;text-align:right"><button class="small" onclick="clearSet('${set}')">Borrar respuestas</button></div>
+      </div>
+      <div class="note">${set==='home'
+        ? 'Seleccione la respuesta que describe mejor el comportamiento de su hijo/a en los últimos 6 meses.'
+        : 'Seleccione la respuesta que mejor describa la conducta del estudiante en los seis meses pasados (o desde el inicio del año escolar).'} Atajo: con una opción seleccionada, teclee 0–3 para responder y pasar al siguiente ítem.</div>
+      <h3>Inatención · ítems 1–9</h3>${itemTable(set,'IA',1)}
+      <h3>Deterioro asociado a los síntomas de inatención</h3>${impTable(set,'IA')}
+      <h3>Hiperactividad-impulsividad · ítems 10–18</h3>${itemTable(set,'HI',10)}
+      <h3>Deterioro asociado a los síntomas de hiperactividad-impulsividad</h3>${impTable(set,'HI')}
+    </section>`;
+  });
+  $('informants').innerHTML = h;
+}
+function updateItemTexts(){
+  const v = formVersion();
+  SETS.forEach(set=>{
+    const f = FORMS[set][v];
+    ['IA','HI'].forEach(sc=>{
+      f[sc].forEach((t,i)=> $(`txt-${set}-${sc}-${i}`).textContent = t);
+      f.IMP.forEach((t,d)=> $(`txt-${set}-imp${sc}-${d}`).textContent = t);
+    });
+  });
+}
+
+/* ================== PUNTUACIÓN ================== */
+function symPct(set, sc, raw){
+  const s = sexKey(), a = ageIdx();
+  if(!s || a === null) return null;
+  const tbl = SYM_NORMS[set + '_' + s];
+  const col = tbl[sc][a], pcts = tbl.pct;
+  for(let i=0;i<col.length;i++){
+    if(col[i] <= raw){
+      if(pcts[i] === '99+') return {p: 99.5, label: '>P99'};
+      const p = parseInt(pcts[i], 10);
+      const floor = i < col.length - 1 && col[col.length-1] === col[i];
+      return {p, label: (floor ? '≤P' : 'P') + p};
+    }
+  }
+  return {p: 1, label: '≤P1'};
+}
+function symClass(p){
+  if(p === null || p === undefined) return {k:'na', t:'Sin norma'};
+  if(p >= 93) return {k:'clin', t:'Clínicamente significativo'};
+  if(p >= 80) return {k:'risk', t:'Elevado (en riesgo)'};
+  return {k:'ok', t:'Rango típico'};
+}
+function impPct(set, d, score){
+  const s = sexKey(), a = ageIdx();
+  if(!s || a === null || score === null) return null;
+  const p = IMP_NORMS[set + '_' + s][d][a][score];
+  return {p, label: p === 99.5 ? 'P≥99.5' : 'P' + p};
+}
+function impClass(score){
+  if(score === null) return {k:'na', t:'—'};
+  if(score >= 2) return {k:'clin', t: score === 3 ? 'Grave' : 'Moderado'};
+  if(score === 1) return {k:'risk', t:'Menor'};
+  return {k:'ok', t:'Ninguno'};
+}
+
+let R = null;
+function computeAll(){
+  const res = {};
+  SETS.forEach(set=>{
+    const r = {set, applied:false};
+    ['IA','HI'].forEach(sc=>{
+      const items = Array.from({length:9}, (_,i)=> radioVal(`${set}-${sc}-${i}`));
+      const n = items.filter(v=>v!==null).length;
+      const sum = items.reduce((a,v)=>a+(v||0),0);
+      const cnt = items.filter(v=>v!==null && v>=2).length;
+      const complete = n === 9;
+      const pct = complete ? symPct(set, sc, sum) : null;
+      const imp = Array.from({length:6}, (_,d)=> radioVal(`${set}-imp${sc}-${d}`));
+      r[sc] = {items, n, sum, cnt, complete, pct, cls: symClass(pct ? pct.p : null), imp,
+               impPct: imp.map((v,d)=> impPct(set, d, v))};
+      if(n > 0 || imp.some(v=>v!==null)) r.applied = true;
+    });
+    const tc = r.IA.complete && r.HI.complete;
+    const tp = tc ? symPct(set, 'TOT', r.IA.sum + r.HI.sum) : null;
+    r.TOT = {sum: r.IA.sum + r.HI.sum, n: r.IA.n + r.HI.n, complete: tc, pct: tp, cls: symClass(tp ? tp.p : null), cnt: r.IA.cnt + r.HI.cnt};
+    res[set] = r;
+  });
+  R = res;
+  return res;
+}
+
+/* Tabla 5-5 */
+const RULES = [
+  {id:'dxI', name:'Diagnóstico de TDAH/I (presentación predominantemente inatenta)', type:'dx',
+   conds:[['school','IA','>=',90],['home','IA','>=',93],['school','HI','<=',80]]},
+  {id:'roI', name:'Descartar TDAH/I', type:'ro', src:'En la tabla: "Detección de TDAH/I"',
+   conds:[['school','IA','<',80],['home','IA','<',85]],
+   alt:[['school','IA','<',80],['home','IA','<',90]]},
+  {id:'dxC', name:'Diagnóstico de TDAH/COM (presentación combinada)', type:'dx',
+   conds:[['school','IA','>=',90],['home','IA','>=',93],['school','HI','>=',93]]},
+  {id:'roC', name:'Descartar TDAH/COM', type:'ro',
+   conds:[['school','IA','<',80],['home','IA','<',85],['school','HI','<',80]],
+   alt:[['school','IA','<',80],['school','HI','<',80],['home','IA','<',80],['home','HI','<',80]]}
+];
+function condText(c){
+  return `${SC_LABEL[c[1]]} (${c[0]==='home'?'padres':'maestros'}) ${c[2]==='>='?'≥':c[2]==='<='?'≤':'<'} P${c[3]}`;
+}
+function evalCond(c){
+  const x = R[c[0]][c[1]];
+  if(!x.pct) return {ok:null, got:'sin dato'};
+  const p = x.pct.p;
+  const ok = c[2]==='>=' ? p >= c[3] : c[2]==='<=' ? p <= c[3] : p < c[3];
+  return {ok, got: x.pct.label};
+}
+function evalSet(conds){
+  const ev = conds.map(evalCond);
+  const status = ev.some(e=>e.ok===false) ? false : ev.some(e=>e.ok===null) ? null : true;
+  return {ev, status};
+}
+function evalRules(){
+  return RULES.map(r=>{
+    const main = evalSet(r.conds);
+    const alt = r.alt ? evalSet(r.alt) : null;
+    let status = main.status;
+    if(alt){
+      if(main.status === true || alt.status === true) status = true;
+      else if(main.status === false && alt.status === false) status = false;
+      else status = null;
+    }
+    return {rule:r, main, alt, status};
+  });
+}
+function ruleVerdict(r){
+  if(r.status === null) return {k:'na', t:'Datos incompletos'};
+  if(r.rule.type === 'dx') return r.status ? {k:'clin', t:'Cumple criterio diagnóstico'} : {k:'ok', t:'No cumple'};
+  return r.status ? {k:'ok', t:'Se puede descartar'} : {k:'risk', t:'No se puede descartar'};
+}
+
+/* DSM-5 */
+function dsmCounts(){
+  const age = parseFloat(val('p-edad'));
+  const thr = !isNaN(age) && age >= 17 ? 5 : 6;
+  const out = {thr};
+  ['IA','HI'].forEach(sc=>{
+    const either = Array.from({length:9}, (_,i)=> [R.home[sc].items[i], R.school[sc].items[i]].some(v=>v!==null && v>=2)).filter(Boolean).length;
+    const both = Array.from({length:9}, (_,i)=> [R.home[sc].items[i], R.school[sc].items[i]].every(v=>v!==null && v>=2)).filter(Boolean).length;
+    out[sc] = {home: R.home[sc].cnt, school: R.school[sc].cnt, either, both};
+  });
+  return out;
+}
+
+/* ================== RENDER ================== */
+function clsChip(c){ return `<span class="cls cls-${c.k}">${c.t}</span>`; }
+let lastRules = [], lastDsm = null;
+function recalcAll(){
+  updateItemTexts();
+  computeAll();
+  // radios marcados y faltantes
+  document.querySelectorAll('.items tbody tr').forEach(tr=>{
+    let any = false;
+    tr.querySelectorAll('td.opt').forEach(td=>{
+      const inp = td.querySelector('input');
+      td.classList.toggle('on', inp.checked);
+      td.classList.toggle('hi', inp.checked && parseInt(inp.value,10) >= 2);
+      if(inp.checked) any = true;
+    });
+    const set = tr.dataset.row.split('-')[0];
+    tr.classList.toggle('missing', !any && R[set].applied);
+  });
+  SETS.forEach(set=>{
+    ['IA','HI'].forEach(sc=>{
+      $(`${set}-${sc}-n`).textContent = R[set][sc].n;
+      $(`${set}-${sc}-sum`).textContent = R[set][sc].sum;
+      $(`${set}-${sc}-cnt`).textContent = R[set][sc].cnt;
+    });
+    const impN = ['IA','HI'].reduce((a,sc)=> a + R[set][sc].imp.filter(v=>v!==null).length, 0);
+    $(`${set}-prog`).innerHTML = `Síntomas <b>${R[set].TOT.n}/18</b> · Deterioro <b>${impN}/12</b>`;
+  });
+  updateNormInfo();
+  renderSummary();
+  renderImpairment();
+  lastRules = evalRules();
+  renderRules();
+  lastDsm = dsmCounts();
+  renderDsm();
+  drawCharts();
+}
+function updateNormInfo(){
+  const s = sexKey(), a = ageIdx(), age = parseFloat(val('p-edad'));
+  const parts = [];
+  parts.push(`Formularios: <b>${formVersion()==='adol'?'Adolescentes':'Niños'}</b>`);
+  if(s && a !== null) parts.push(`Normas: <b>${s==='m'?'niños':'niñas'} de ${AGE_BANDS[a]} años</b>`);
+  let warn = '';
+  if(!s) warn = 'Indique el sexo para obtener percentiles.';
+  else if(isNaN(age)) warn = 'Indique la edad para obtener percentiles.';
+  else if(a === null) warn = 'Las normas cubren de 5 a 17 años.';
+  $('normInfo').innerHTML = parts.join(' · ') + (warn ? ` · <span class="warn">${warn}</span>` : '');
+}
+function pctCell(x){ return x ? x.label : '—'; }
+function renderSummary(){
+  let h = `<thead><tr><th>Informante</th><th>Escala</th><th>Respondidos</th><th>Puntuación directa</th><th>Percentil</th><th>Clasificación</th><th>Síntomas presentes</th></tr></thead><tbody>`;
+  SETS.forEach((set,si)=>{
+    ['IA','HI','TOT'].forEach((sc,k)=>{
+      const x = R[set][sc];
+      const nMax = sc === 'TOT' ? 18 : 9;
+      const cls = x.complete ? x.cls : (x.n ? {k:'na', t:'Incompleto'} : {k:'na', t:'Sin aplicar'});
+      h += `<tr class="${k===0 && si>0 ? 'sep' : ''}">${k===0?`<td class="rowlabel" rowspan="3">${SET_LABEL[set]}</td>`:''}
+        <td class="txt">${SC_LABEL[sc]}</td><td>${x.n}/${nMax}</td><td class="direct">${x.sum}</td>
+        <td class="pct">${pctCell(x.pct)}</td><td>${clsChip(cls)}</td><td>${x.cnt}/${nMax}</td></tr>`;
+    });
+  });
+  $('sumTable').innerHTML = h + '</tbody>';
+}
+function renderImpairment(){
+  let h = `<thead><tr><th rowspan="2" style="text-align:left">Dominio</th>`;
+  SETS.forEach(set=> h += `<th colspan="2">${SET_LABEL[set]} · IA</th><th colspan="2">${SET_LABEL[set]} · HI</th>`);
+  h += '</tr><tr>' + '<th>Punt.</th><th>Percentil</th>'.repeat(4) + '</tr></thead><tbody>';
+  for(let d=0;d<6;d++){
+    h += `<tr><td class="txt">${DOMAINS.home[d] === DOMAINS.school[d] ? DOMAINS.home[d] : DOMAINS.home[d] + ' / ' + DOMAINS.school[d].replace('Relaciones','relaciones')}</td>`;
+    SETS.forEach(set=>['IA','HI'].forEach(sc=>{
+      const v = R[set][sc].imp[d];
+      h += `<td>${v===null?'—':clsChip({k:impClass(v).k, t: v + ' · ' + impClass(v).t})}</td><td class="pct">${pctCell(R[set][sc].impPct[d])}</td>`;
+    }));
+    h += '</tr>';
+  }
+  $('impTable').innerHTML = h + '</tbody>';
+}
+function condLi(c, e){
+  const mark = e.ok === null ? '<span class="na-mark">○</span>' : e.ok ? '<span class="ok-mark">✓</span>' : '<span class="no-mark">✗</span>';
+  return `<li>${mark} ${condText(c)} <span style="color:#7a8890">· obtenido: ${e.got}</span></li>`;
+}
+function renderRules(){
+  $('rules').innerHTML = lastRules.map(r=>{
+    const v = ruleVerdict(r);
+    let h = `<div class="rule"><div class="rule-head"><span>${r.rule.name}${r.rule.src ? ` <span style="font-weight:400;font-size:11px;color:#7a8890">(${r.rule.src})</span>` : ''}</span>${clsChip(v)}</div><ul>`;
+    h += r.rule.conds.map((c,i)=> condLi(c, r.main.ev[i])).join('');
+    h += '</ul>';
+    if(r.rule.alt){
+      h += `<div class="note" style="font-style:normal;margin-top:6px">Alternativa:</div><ul>` + r.rule.alt.map((c,i)=> condLi(c, r.alt.ev[i])).join('') + '</ul>';
+    }
+    return h + '</div>';
+  }).join('');
+}
+function renderDsm(){
+  const d = lastDsm;
+  const chip = (l, v, met) => `<div class="chip${met?' met':''}"><span class="l">${l}</span><span class="v">${v}</span></div>`;
+  $('dsmChips').innerHTML =
+    chip('Inatención · padres', d.IA.home + '/9', d.IA.home >= d.thr) +
+    chip('Inatención · maestros', d.IA.school + '/9', d.IA.school >= d.thr) +
+    chip('Inatención · en algún contexto', d.IA.either + '/9', d.IA.either >= d.thr) +
+    chip('Hiperactividad-imp. · padres', d.HI.home + '/9', d.HI.home >= d.thr) +
+    chip('Hiperactividad-imp. · maestros', d.HI.school + '/9', d.HI.school >= d.thr) +
+    chip('Hiperactividad-imp. · en algún contexto', d.HI.either + '/9', d.HI.either >= d.thr);
+  $('dsmNote').textContent = `Umbral DSM-5 para la edad: ${d.thr} o más síntomas por dimensión (5 a partir de los 17 años). Se cuenta un síntoma cuando el ítem se calificó 2 o 3. Síntomas presentes en ambos contextos: inatención ${d.IA.both}/9, hiperactividad-impulsividad ${d.HI.both}/9. El conteo es orientativo: el diagnóstico exige además inicio antes de los 12 años, presencia en dos o más contextos, deterioro y descartar otras causas.`;
+}
+
+/* ================== GRÁFICAS ================== */
+const COL = {home:'#3d6b70', school:'#a9752c', homeL:'#8fb3b6', schoolL:'#d6b382', ink:'#1c2a33', gray:'#5b6b73', grid:'#e9edf0', danger:'#a5473a', amber:'#a9752c'};
+function roundRect(ctx, x, y, w, h, r){
+  if(h <= 0) return;
+  r = Math.min(r, h/2, w/2);
+  ctx.beginPath(); ctx.moveTo(x, y+h); ctx.lineTo(x, y+r); ctx.quadraticCurveTo(x, y, x+r, y);
+  ctx.lineTo(x+w-r, y); ctx.quadraticCurveTo(x+w, y, x+w, y+r); ctx.lineTo(x+w, y+h); ctx.closePath(); ctx.fill();
+}
+function renderSymChart(ctx, W, H){
+  ctx.fillStyle = '#fff'; ctx.fillRect(0,0,W,H);
+  const L = 64, Rm = 96, T = 44, B = 64, pw = W-L-Rm, ph = H-T-B;
+  ctx.font = '600 14px Helvetica, Arial, sans-serif'; ctx.fillStyle = COL.ink; ctx.textAlign = 'left';
+  ctx.fillText('Perfil de percentiles de síntomas', L, 26);
+  const y = p => T + ph - (p/100)*ph;
+  ctx.font = '11px Helvetica, Arial, sans-serif'; ctx.textAlign = 'right';
+  [0,25,50,75,100].forEach(p=>{ ctx.strokeStyle = COL.grid; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(L, y(p)); ctx.lineTo(L+pw, y(p)); ctx.stroke(); ctx.fillStyle = COL.gray; ctx.fillText('P' + p, L-8, y(p)+4); });
+  [[80,COL.amber,'P80 riesgo',4],[93,COL.danger,'P93 clínico',-2]].forEach(([p,c,t,dy])=>{
+    ctx.save(); ctx.setLineDash([6,4]); ctx.strokeStyle = c; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(L, y(p)); ctx.lineTo(L+pw, y(p)); ctx.stroke(); ctx.restore();
+    ctx.fillStyle = c; ctx.textAlign = 'left'; ctx.font = '600 11px Helvetica, Arial, sans-serif'; ctx.fillText(t, L+pw+8, y(p)+dy+4);
+  });
+  const groups = ['IA','HI','TOT'], gw = pw/3, bw = Math.min(70, gw/3.2);
+  groups.forEach((sc,gi)=>{
+    const cx = L + gw*gi + gw/2;
+    SETS.forEach((set,si)=>{
+      const x = R[set][sc];
+      const bx = cx + (si === 0 ? -bw-6 : 6);
+      if(x.pct){
+        ctx.fillStyle = COL[set];
+        roundRect(ctx, bx, y(Math.min(x.pct.p,100)), bw, ph - (y(Math.min(x.pct.p,100)) - T), 3);
+        ctx.fillStyle = COL.ink; ctx.textAlign = 'center'; ctx.font = '700 12px Helvetica, Arial, sans-serif';
+        ctx.fillText(x.pct.label, bx + bw/2, y(Math.min(x.pct.p,100)) - 6);
+      } else {
+        ctx.fillStyle = '#9aa4a9'; ctx.textAlign = 'center'; ctx.font = '11px Helvetica, Arial, sans-serif';
+        ctx.fillText('sin dato', bx + bw/2, T + ph - 6);
+      }
+    });
+    ctx.fillStyle = COL.ink; ctx.textAlign = 'center'; ctx.font = '600 12.5px Helvetica, Arial, sans-serif';
+    ctx.fillText(SC_LABEL[sc], cx, T + ph + 22);
+  });
+  // leyenda
+  let lx = L; const ly = H - 18;
+  SETS.forEach(set=>{ ctx.fillStyle = COL[set]; ctx.fillRect(lx, ly-9, 12, 12); ctx.fillStyle = COL.ink; ctx.textAlign = 'left'; ctx.font = '12px Helvetica, Arial, sans-serif'; ctx.fillText(SET_LABEL[set], lx + 18, ly + 1); lx += 180; });
+}
+function renderImpChart(ctx, W, H){
+  ctx.fillStyle = '#fff'; ctx.fillRect(0,0,W,H);
+  const L = 54, Rm = 20, T = 44, B = 70, pw = W-L-Rm, ph = H-T-B;
+  ctx.font = '600 14px Helvetica, Arial, sans-serif'; ctx.fillStyle = COL.ink; ctx.textAlign = 'left';
+  ctx.fillText('Perfil de deterioro funcional (0–3)', L, 26);
+  const y = v => T + ph - (v/3)*ph;
+  const labs = ['0 Ninguno','1 Menor','2 Moderado','3 Grave'];
+  ctx.font = '10.5px Helvetica, Arial, sans-serif';
+  [0,1,2,3].forEach(v=>{ ctx.strokeStyle = COL.grid; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(L, y(v)); ctx.lineTo(L+pw, y(v)); ctx.stroke(); ctx.fillStyle = COL.gray; ctx.textAlign = 'right'; ctx.fillText(String(v), L-8, y(v)+4); });
+  ctx.save(); ctx.setLineDash([6,4]); ctx.strokeStyle = COL.danger; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(L, y(2)); ctx.lineTo(L+pw, y(2)); ctx.stroke(); ctx.restore();
+  ctx.fillStyle = COL.danger; ctx.textAlign = 'right'; ctx.font = '600 10.5px Helvetica, Arial, sans-serif'; ctx.fillText('deterioro significativo', L+pw-4, y(2)-5);
+  const series = [['home','IA',COL.home],['home','HI',COL.homeL],['school','IA',COL.school],['school','HI',COL.schoolL]];
+  const gw = pw/6, bw = Math.min(22, (gw-16)/4);
+  for(let d=0;d<6;d++){
+    const x0 = L + gw*d + (gw - bw*4 - 6)/2;
+    series.forEach(([set,sc,c],k)=>{
+      const v = R[set][sc].imp[d];
+      const bx = x0 + k*(bw+2);
+      if(v === null){ ctx.fillStyle = '#c4cbcf'; ctx.fillRect(bx, T+ph-2, bw, 2); return; }
+      ctx.fillStyle = c; roundRect(ctx, bx, y(v), bw, ph - (y(v)-T) || 0.0001, 2);
+      if(v === 0){ ctx.fillStyle = c; ctx.fillRect(bx, T+ph-3, bw, 3); }
+    });
+    ctx.fillStyle = COL.ink; ctx.textAlign = 'center'; ctx.font = '600 11px Helvetica, Arial, sans-serif';
+    const lab = DOMAIN_SHORT[d].split(' ');
+    if(lab.length > 1 && DOMAIN_SHORT[d].length > 12){ ctx.fillText(lab[0], L + gw*d + gw/2, T+ph+18); ctx.fillText(lab.slice(1).join(' '), L + gw*d + gw/2, T+ph+31); }
+    else ctx.fillText(DOMAIN_SHORT[d], L + gw*d + gw/2, T+ph+18);
+  }
+  let lx = L; const ly = H - 12;
+  series.forEach(([set,sc,c])=>{ ctx.fillStyle = c; ctx.fillRect(lx, ly-9, 12, 12); ctx.fillStyle = COL.ink; ctx.textAlign = 'left'; ctx.font = '11.5px Helvetica, Arial, sans-serif'; const t = (set==='home'?'Padres':'Maestros') + ' · ' + (sc==='IA'?'inatención':'hiperact.-imp.'); ctx.fillText(t, lx+17, ly+1); lx += ctx.measureText(t).width + 40; });
+}
+function chartToCanvas(kind, scale){
+  const W = 900, H = kind === 'sym' ? 420 : 400;
+  const c = document.createElement('canvas'); c.width = W*scale; c.height = H*scale;
+  const ctx = c.getContext('2d'); ctx.scale(scale, scale);
+  (kind === 'sym' ? renderSymChart : renderImpChart)(ctx, W, H);
+  return c;
+}
+function drawCharts(){
+  [['sym','symCanvas'],['imp','impCanvas']].forEach(([k,id])=>{
+    const cv = $(id), dpr = window.devicePixelRatio || 1;
+    const W = 900, H = k === 'sym' ? 420 : 400;
+    cv.width = W*dpr; cv.height = H*dpr;
+    const ctx = cv.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0);
+    (k === 'sym' ? renderSymChart : renderImpChart)(ctx, W, H);
+  });
+}
+function downloadDataUrl(url, name){
+  const a = document.createElement('a'); a.href = url; a.download = name;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+}
+function exportChart(kind){
+  downloadDataUrl(chartToCanvas(kind, 3).toDataURL('image/png'), baseFileName() + (kind === 'sym' ? '_perfil_sintomas' : '_perfil_deterioro') + '.png');
+}
+
+/* ================== GUARDADO ================== */
+const STORAGE_KEY = 'tdah5_calculadora_v1';
+const APP_ID = 'tdah5-calculadora';
+function saveableControls(){
+  return [...document.querySelectorAll('.wrap input, .wrap select, .wrap textarea')].filter(el => !el.hasAttribute('data-nosave') && el.type !== 'file');
+}
+function collectState(){
+  const fields = {};
+  saveableControls().forEach(el=>{
+    if(el.type === 'radio'){ if(el.checked) fields['radio:' + el.name] = el.value; }
+    else if(el.type === 'checkbox') fields[el.id] = el.checked;
+    else if(el.id) fields[el.id] = el.value;
+  });
+  return {app: APP_ID, version: 1, savedAt: new Date().toISOString(), fields};
+}
+function applyState(state){
+  if(!state || !state.fields) return false;
+  const f = state.fields;
+  saveableControls().forEach(el=>{
+    if(el.type === 'radio'){ el.checked = f['radio:' + el.name] === el.value; }
+    else if(el.id && el.id in f){ if(el.type === 'checkbox') el.checked = !!f[el.id]; else el.value = f[el.id]; }
+  });
+  return true;
+}
+function storageGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
+function storageSet(k,v){ try{ localStorage.setItem(k,v); return true; }catch(e){ return false; } }
+function storageDel(k){ try{ localStorage.removeItem(k); }catch(e){} }
+let saveTimer = null;
+function scheduleSave(){
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(()=>{
+    saveTimer = null;
+    const ok = storageSet(STORAGE_KEY, JSON.stringify(collectState()));
+    const t = new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    $('saveStatus').innerHTML = ok ? `Autoguardado · <b>${t}</b>` : '<span style="color:#a5473a">No se pudo autoguardar en este navegador; use "Descargar avance".</span>';
+  }, 400);
+}
+function fileSafe(s){ return (s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^\w-]+/g,'_').replace(/^_+|_+$/g,''); }
+function patientName(){ return [val('p-nombre'), val('p-apellidos')].map(s=>s.trim()).filter(Boolean).join(' '); }
+function baseFileName(){
+  const name = fileSafe(patientName());
+  const d = val('p-fecha') || new Date().toISOString().slice(0,10);
+  return 'TDAH-5_' + (name || 'sin_nombre') + '_' + d;
+}
+function downloadProgress(){
+  const blob = new Blob([JSON.stringify(collectState(), null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  downloadDataUrl(url, baseFileName() + '.json');
+  setTimeout(()=>URL.revokeObjectURL(url), 2000);
+}
+function loadProgressFile(input){
+  const file = input.files && input.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    try{
+      const state = JSON.parse(reader.result);
+      if(state.app !== APP_ID) throw new Error('el archivo no es un avance de esta calculadora.');
+      resetControls(); applyState(state); onAnyChange();
+      alert('Avance cargado (guardado el ' + new Date(state.savedAt).toLocaleString('es-MX') + ').');
+    }catch(e){ alert('No se pudo cargar el avance: ' + e.message); }
+    input.value = '';
+  };
+  reader.readAsText(file);
+}
+function resetControls(){
+  saveableControls().forEach(el=>{
+    if(el.type === 'radio' || el.type === 'checkbox') el.checked = false;
+    else if(el.tagName === 'SELECT'){ const def = [...el.options].find(o=>o.defaultSelected); el.value = def ? def.value : ''; }
+    else el.value = '';
+  });
+}
+function clearAll(){
+  if(!confirm('¿Borrar todos los datos capturados? Se eliminará también el autoguardado. (Descargue antes el avance si quiere conservarlo.)')) return;
+  storageDel(STORAGE_KEY); resetControls(); setAIStatus(''); onAnyChange();
+}
+function clearSet(set){
+  if(!confirm('¿Borrar las respuestas de la ' + (set==='home'?'versión para el hogar':'versión para la escuela') + '?')) return;
+  document.querySelectorAll(`#sec-${set} input[type=radio]`).forEach(el=> el.checked = false);
+  onAnyChange();
+}
+
+/* ================== TABLAS CSV ================== */
+function downloadTablesCsv(){
+  recalcAll();
+  const rows = [];
+  const q = v => '"' + String(v === null || v === undefined ? '' : v).replace(/"/g,'""') + '"';
+  rows.push(['Escala de Evaluación del TDAH-5']);
+  rows.push(['Paciente', patientName()], ['Expediente', val('p-expediente')], ['Sexo', val('p-sexo')==='m'?'Masculino':val('p-sexo')==='f'?'Femenino':''], ['Edad', val('p-edad')], ['Grado', val('p-grado')], ['Fecha', val('p-fecha')], ['Examinador(a)', val('p-examinador')], []);
+  rows.push(['RESUMEN DE SÍNTOMAS']);
+  rows.push(['Informante','Escala','Respondidos','Puntuación directa','Percentil','Clasificación','Síntomas presentes']);
+  SETS.forEach(set=>['IA','HI','TOT'].forEach(sc=>{
+    const x = R[set][sc];
+    rows.push([SET_LABEL[set], SC_LABEL[sc], x.n, x.sum, x.pct ? x.pct.label : '', x.complete ? x.cls.t : (x.n ? 'Incompleto' : 'Sin aplicar'), x.cnt]);
+  }));
+  rows.push([], ['DETERIORO FUNCIONAL']);
+  rows.push(['Informante','Síntomas','Dominio','Ítem','Puntuación','Nivel','Percentil']);
+  const v = formVersion();
+  SETS.forEach(set=>['IA','HI'].forEach(sc=>{
+    for(let d=0;d<6;d++){ const s = R[set][sc].imp[d]; rows.push([SET_LABEL[set], SC_LABEL[sc], DOMAINS[set][d], FORMS[set][v].IMP[d], s, s===null?'':IMP_RESP[s], R[set][sc].impPct[d] ? R[set][sc].impPct[d].label : '']); }
+  }));
+  rows.push([], ['PUNTOS DE CORTE (TABLA 5-5)']);
+  lastRules.forEach(r=> rows.push([r.rule.name, ruleVerdict(r).t]));
+  rows.push([], ['RESPUESTAS POR ÍTEM']);
+  rows.push(['Informante','Escala','Núm.','Ítem','Respuesta','Descripción']);
+  SETS.forEach(set=>['IA','HI'].forEach(sc=>{
+    FORMS[set][v][sc].forEach((t,i)=>{ const s = R[set][sc].items[i]; rows.push([SET_LABEL[set], SC_LABEL[sc], (sc==='IA'?1:10)+i, t, s, s===null?'':RESP[set][s]]); });
+  }));
+  const csv = '﻿' + rows.map(r=> r.map(q).join(',')).join('\r\n');
+  const url = URL.createObjectURL(new Blob([csv], {type:'text/csv;charset=utf-8'}));
+  downloadDataUrl(url, baseFileName() + '_tablas.csv');
+  setTimeout(()=>URL.revokeObjectURL(url), 2000);
+}
+
+/* ================== IA (Gemini / ChatGPT) ================== */
+function setAIStatus(msg, isErr){ const el = $('aiStatus'); el.textContent = msg || ''; el.className = 'ai-status no-print' + (isErr ? ' err' : ''); }
+const AI = {
+  gemini: {name:'Gemini', keyLabel:'Clave API de Gemini', placeholder:'AIza…', defaultModel:'gemini-flash-latest',
+           models:['gemini-flash-latest','gemini-pro-latest','gemini-2.5-flash','gemini-2.5-pro'], keyHelp:'Google AI Studio → Get API key'},
+  openai: {name:'ChatGPT', keyLabel:'Clave API de OpenAI (ChatGPT)', placeholder:'sk-…', defaultModel:'gpt-5-mini',
+           models:['gpt-5-mini','gpt-5','gpt-5.1','gpt-4.1','gpt-4o-mini'], keyHelp:'platform.openai.com → API keys; requiere saldo en la API, la suscripción ChatGPT Plus no la incluye'}
+};
+let curProv = 'gemini';
+// Mismas claves de almacenamiento que las otras calculadoras para compartir la configuración de IA
+const provKey = p => 'bne_ai_key_' + p, provModel = p => 'bne_ai_model_' + p, PROV_STORAGE = 'bne_ai_provider';
+const aiMem = {gemini:{key:'',model:''}, openai:{key:'',model:''}};
+function applyProviderUI(){
+  const cfg = AI[curProv];
+  $('aiProvider').value = curProv;
+  $('aiKeyLabel').textContent = cfg.keyLabel;
+  $('aiKey').placeholder = cfg.placeholder;
+  $('aiKey').value = aiMem[curProv].key || storageGet(provKey(curProv)) || '';
+  $('aiRemember').checked = !!storageGet(provKey(curProv));
+  $('aiModel').value = aiMem[curProv].model || storageGet(provModel(curProv)) || cfg.defaultModel;
+  $('aiModels').innerHTML = cfg.models.map(m=>`<option value="${m}">`).join('');
+  $('btnAI').textContent = 'Analizar con ' + cfg.name;
+}
+function switchProvider(){
+  const p = $('aiProvider').value;
+  if(p === curProv || !AI[p]) return;
+  aiMem[curProv] = {key: $('aiKey').value.trim(), model: $('aiModel').value.trim()};
+  curProv = p; storageSet(PROV_STORAGE, p); applyProviderUI(); setAIStatus('');
+}
+function rememberAI(){
+  const key = $('aiKey').value.trim(), model = $('aiModel').value.trim();
+  aiMem[curProv] = {key, model};
+  storageSet(provModel(curProv), model);
+  if($('aiRemember').checked && key) storageSet(provKey(curProv), key); else storageDel(provKey(curProv));
+}
+function restoreAI(){ const p = storageGet(PROV_STORAGE); if(p && AI[p]) curProv = p; applyProviderUI(); }
+
+function cleanReportText(s){
+  return String(s || '')
+    .replace(/[​-‍⁠﻿­]/g, '')
+    .replace(/ /g, ' ')
+    .split('\n')
+    .filter(l => !/^\s*\(?\s*(generado|elaborado|redactado|creado)\s+(con|por)\s+(la\s+)?(ia|inteligencia artificial|gemini|chatgpt|gpt|openai)/i.test(l))
+    .join('\n')
+    .replace(/\s*[—–]\s*/g, ', ')
+    .replace(/\*\*(.+?)\*\*/g, '$1')
+    .replace(/[“”]/g, '"')
+    .replace(/,\s*,/g, ',')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+function parseAIJson(text){
+  text = String(text || '').trim().replace(/^```(?:json)?\s*|\s*```$/g,'');
+  try{ return JSON.parse(text); }
+  catch(e){
+    const a = text.indexOf('{'), b = text.lastIndexOf('}');
+    if(a >= 0 && b > a) return JSON.parse(text.slice(a, b+1));
+    throw new Error('la respuesta no es JSON válido');
+  }
+}
+function buildPrompt(){
+  const sexo = val('p-sexo')==='m' ? 'masculino' : val('p-sexo')==='f' ? 'femenino' : 'no indicado';
+  const a = ageIdx();
+  const v = formVersion();
+  const lines = [];
+  SETS.forEach(set=>{
+    if(!R[set].applied){ lines.push(`${SET_LABEL[set]}: no aplicada.`); return; }
+    const inf = set==='home' ? [val('home-por'), val('home-informante')].filter(Boolean).join(', ') : 'maestro(a)';
+    lines.push(`${SET_LABEL[set]} (informante: ${inf || 'no indicado'}):`);
+    ['IA','HI','TOT'].forEach(sc=>{
+      const x = R[set][sc];
+      lines.push(`- ${SC_LABEL[sc]}: puntuación directa ${x.sum} (${x.n}/${sc==='TOT'?18:9} ítems respondidos), percentil ${x.pct ? x.pct.label : 'no calculable'}, ${x.complete ? x.cls.t : 'incompleto'}; síntomas presentes (2-3): ${x.cnt}`);
+    });
+    ['IA','HI'].forEach(sc=>{
+      const items = FORMS[set][v][sc].map((t,i)=> R[set][sc].items[i] !== null && R[set][sc].items[i] >= 2 ? `"${t}" (${R[set][sc].items[i]})` : null).filter(Boolean);
+      if(items.length) lines.push(`  Ítems de ${SC_LABEL[sc].toLowerCase()} calificados 2-3: ${items.join('; ')}`);
+      const imp = DOMAINS[set].map((dn,d)=>{ const s = R[set][sc].imp[d]; return s===null ? null : `${dn} ${s} (${IMP_RESP[s].toLowerCase()}, ${R[set][sc].impPct[d] ? R[set][sc].impPct[d].label : 's/p'})`; }).filter(Boolean);
+      if(imp.length) lines.push(`  Deterioro asociado a ${SC_LABEL[sc].toLowerCase()}: ${imp.join('; ')}`);
+    });
+  });
+  const rules = lastRules.map(r=>`- ${r.rule.name}: ${ruleVerdict(r).t} [` + r.rule.conds.map((c,i)=>`${condText(c)}: ${r.main.ev[i].got}`).join('; ') + (r.alt ? '; alternativa: ' + r.rule.alt.map((c,i)=>`${condText(c)}: ${r.alt.ev[i].got}`).join('; ') : '') + ']').join('\n');
+  const d = lastDsm;
+  return `Eres neuropsicólogo clínico infantil con experiencia en la Escala de Evaluación del TDAH-5 para niños y adolescentes (DuPaul, Power, Anastopoulos y Reid, 2016; versiones para el hogar y la escuela, 18 síntomas DSM-5 en dos dimensiones, inatención e hiperactividad-impulsividad, calificados 0-3, más 6 dominios de deterioro calificados 0-3).
+
+TAREA: Redacta la interpretación de los resultados para el informe neuropsicológico (220-380 palabras, español neutro, dos a cuatro párrafos de prosa continua, tercera persona: "el paciente"/"la paciente" según el sexo). Integra: nivel de síntomas en cada dimensión y su posición percentilar según el informante, concordancia o discrepancia entre padres y maestros, síntomas más relevantes, dominios de deterioro con calificación moderada o grave, conteo de síntomas DSM-5 y lo que indican los puntos de corte de la Tabla 5-5 (estudio clínico de DuPaul y cols.). Usa únicamente los datos proporcionados; no inventes antecedentes. No emitas un diagnóstico definitivo: indica que los resultados son compatibles o no con la presencia de síntomas clínicamente significativos y que deben integrarse con la entrevista clínica, la historia del desarrollo y la evaluación neuropsicológica. Escríbelo como lo redactaría el propio neuropsicólogo. No menciones inteligencia artificial ni que el texto fue generado; no uses guiones largos (—), negritas, viñetas, encabezados, frases de cierre que resuman, ni muletillas como "cabe destacar", "en conclusión" o "es importante señalar".
+
+Criterios de clasificación usados: rango típico <P80; elevado (en riesgo) P80-P92; clínicamente significativo ≥P93. Deterioro de 2 o 3 = clínicamente relevante.
+
+PACIENTE: edad ${val('p-edad') || 'no indicada'} años; sexo ${sexo}; grado escolar ${val('p-grado') || 'no indicado'}; normas ${a===null ? 'no disponibles' : AGE_BANDS[a] + ' años'}; formularios de ${v==='adol'?'adolescentes':'niños'}.
+
+RESULTADOS:
+${lines.join('\n')}
+
+PUNTOS DE CORTE (Tabla 5-5):
+${rules}
+
+CONTEO DSM-5 (umbral ${d.thr}): inatención padres ${d.IA.home}, maestros ${d.IA.school}, en algún contexto ${d.IA.either}, en ambos ${d.IA.both}; hiperactividad-impulsividad padres ${d.HI.home}, maestros ${d.HI.school}, en algún contexto ${d.HI.either}, en ambos ${d.HI.both}.
+
+Responde SOLO con JSON válido con esta forma exacta:
+{"analisis":"texto de la interpretación"}`;
+}
+async function callGemini(key, model, prompt){
+  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model.replace(/^models\//,''))}:generateContent`, {
+    method:'POST', headers:{'Content-Type':'application/json','x-goog-api-key':key},
+    body: JSON.stringify({contents:[{role:'user', parts:[{text: prompt}]}], generationConfig:{temperature:0.3, responseMimeType:'application/json'}})
+  });
+  const data = await res.json().catch(()=>({}));
+  if(!res.ok) throw new Error((data.error && data.error.message) || ('HTTP ' + res.status));
+  const cand = data.candidates && data.candidates[0];
+  const text = cand && cand.content && cand.content.parts ? cand.content.parts.filter(p=>!p.thought).map(p=>p.text||'').join('') : '';
+  if(!text) throw new Error('no devolvió contenido' + (cand && cand.finishReason ? ' (' + cand.finishReason + ')' : '') + '.');
+  return text;
+}
+async function callOpenAI(key, model, prompt){
+  const body = {model, messages:[{role:'system', content:'Eres un neuropsicólogo clínico. Respondes únicamente con un objeto JSON válido.'},{role:'user', content: prompt}], response_format:{type:'json_object'}};
+  if(!/^(gpt-5|o\d)/i.test(model)) body.temperature = 0.3;
+  const res = await fetch('https://api.openai.com/v1/chat/completions', {method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer ' + key}, body: JSON.stringify(body)});
+  const data = await res.json().catch(()=>({}));
+  if(!res.ok){
+    const msg = (data.error && data.error.message) || ('HTTP ' + res.status);
+    if(res.status === 429 && /quota/i.test(msg)) throw new Error(msg + ' (la cuenta de la API no tiene saldo; ChatGPT Plus no incluye la API)');
+    throw new Error(msg);
+  }
+  const ch = data.choices && data.choices[0];
+  const text = ch && ch.message ? ch.message.content : '';
+  if(!text) throw new Error('no devolvió contenido' + (ch && ch.finish_reason ? ' (' + ch.finish_reason + ')' : '') + '.');
+  return text;
+}
+async function analyzeWithAI(){
+  const cfg = AI[curProv];
+  recalcAll();
+  if(!R.home.applied && !R.school.applied){ setAIStatus('Capture primero las respuestas de al menos un informante.', true); return; }
+  const key = $('aiKey').value.trim();
+  if(!key){ setAIStatus('Escriba su ' + cfg.keyLabel.charAt(0).toLowerCase() + cfg.keyLabel.slice(1) + ' (' + cfg.keyHelp + ').', true); $('aiKey').focus(); return; }
+  const model = $('aiModel').value.trim() || cfg.defaultModel;
+  rememberAI();
+  if($('analisis').value.trim() && !confirm('Ya hay una interpretación escrita. ¿Reemplazarla con la nueva?')) return;
+  const btn = $('btnAI'); btn.disabled = true;
+  setAIStatus('Consultando a ' + cfg.name + ' (' + model + ')…');
+  try{
+    const prompt = buildPrompt();
+    const text = curProv === 'openai' ? await callOpenAI(key, model, prompt) : await callGemini(key, model, prompt);
+    const json = parseAIJson(text);
+    if(!json.analisis) throw new Error('la respuesta no trae el análisis.');
+    $('analisis').value = cleanReportText(json.analisis);
+    onAnyChange();
+    setAIStatus('Listo: interpretación generada con ' + cfg.name + ' (' + model + '). Revísela antes de usarla en el informe.');
+  }catch(e){ setAIStatus('Error con ' + cfg.name + ': ' + e.message, true); }
+  finally{ btn.disabled = false; }
+}
+
+/* ================== EXPORTACIÓN A WORD / GOOGLE DOCS ================== */
+const C = {ink:'1C2A33', accent:'3D6B70', accentSoft:'E4EEEE', amber:'A9752C', amberSoft:'F6ECDC', line:'D8DEE2', lineSoft:'E9EDF0', gray:'5B6B73', light:'7A8890', totals:'F4F6F5', danger:'A5473A', dangerSoft:'F6E6E3', media:'EEF0EE'};
+const CLS_FILL = {ok:[C.media,C.gray], risk:[C.amberSoft,C.amber], clin:[C.dangerSoft,C.danger], na:[C.totals,'9AA4A9']};
+const SERIF = 'Palatino Linotype', SANS = 'Arial';
+function dataUrlToBytes(url){ const bin = atob(url.split(',')[1]); const out = new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) out[i] = bin.charCodeAt(i); return out; }
+function loadScript(src){ return new Promise((res, rej)=>{ const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = ()=>rej(new Error('no se pudo cargar ' + src)); document.head.appendChild(s); }); }
+async function ensureDocxLib(){
+  if(window.docx) return;
+  for(const src of ['https://unpkg.com/docx@8.5.0/build/index.umd.js','https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js']){
+    try{ await loadScript(src); if(window.docx) return; }catch(e){}
+  }
+  throw new Error('No se pudo cargar la librería para generar .docx. Revise su conexión a internet e intente de nuevo.');
+}
+async function exportDocx(){
+  const btn = $('btnDocx'); btn.disabled = true;
+  try{
+    await ensureDocxLib();
+    recalcAll();
+    const D = window.docx;
+    const T = (text, o={}) => new D.TextRun({text: String(text), font: o.font || SERIF, size: Math.round((o.size || 10)*2), bold: !!o.bold, italics: !!o.italic, color: o.color || C.ink, allCaps: !!o.caps, characterSpacing: o.spacing});
+    const P = (runs, o={}) => new D.Paragraph({children: Array.isArray(runs) ? runs : [runs],
+      alignment: o.align === 'right' ? D.AlignmentType.RIGHT : o.align === 'center' ? D.AlignmentType.CENTER : o.align === 'justify' ? D.AlignmentType.JUSTIFIED : D.AlignmentType.LEFT,
+      spacing: {before: o.before || 0, after: o.after === undefined ? 0 : o.after, line: o.line}, border: o.border, keepNext: o.keepNext});
+    const bSoft = {style: D.BorderStyle.SINGLE, size: 4, color: C.lineSoft};
+    const bNone = {style: D.BorderStyle.NONE, size: 0, color: 'FFFFFF'};
+    const cellBorders = {top:bSoft, bottom:bSoft, left:bSoft, right:bSoft};
+    const noBorders = {top:bNone, bottom:bNone, left:bNone, right:bNone};
+    const Cell = (content, o={}) => new D.TableCell({
+      children: Array.isArray(content) && content[0] instanceof D.Paragraph ? content : [P(Array.isArray(content) ? content : [T(content === null || content === undefined ? '' : content, o)], {align: o.align || 'center'})],
+      shading: o.fill ? {fill: o.fill, type: D.ShadingType.CLEAR, color: 'auto'} : undefined,
+      borders: o.noBorder ? noBorders : cellBorders, margins: {top: o.pad || 50, bottom: o.pad || 50, left: 90, right: 90},
+      verticalAlign: D.VerticalAlign.CENTER, width: o.dxa ? {size: o.dxa, type: D.WidthType.DXA} : (o.width ? {size: o.width, type: D.WidthType.PERCENTAGE} : undefined),
+      columnSpan: o.span, rowSpan: o.rowSpan
+    });
+    const TH = (t, o={}) => Cell(t, Object.assign({fill: C.accentSoft, font: SANS, size: 7.5, caps: true, bold: true, color: C.accent}, o));
+    const Table = (rows, o={}) => new D.Table({rows, width: o.cols ? {size: o.cols.reduce((a,b)=>a+b,0), type: D.WidthType.DXA} : {size: 100, type: D.WidthType.PERCENTAGE}, columnWidths: o.cols, layout: o.cols ? D.TableLayoutType.FIXED : undefined, borders: o.noBorder ? Object.assign({insideHorizontal:bNone, insideVertical:bNone}, noBorders) : undefined});
+    const Row = (cells, header) => new D.TableRow({children: cells, cantSplit: true, tableHeader: !!header});
+    const H2 = t => P([T(t, {font: SANS, size: 9.5, caps: true, bold: true, color: C.accent, spacing: 16})], {before: 280, after: 120, keepNext: true, border: {bottom: {style: D.BorderStyle.SINGLE, size: 6, color: C.line, space: 4}}});
+    const H3 = t => P([T(t, {font: SANS, size: 8, caps: true, bold: true, color: C.gray, spacing: 10})], {before: 160, after: 60, keepNext: true});
+    const Note = t => P([T(t, {font: SANS, size: 7.5, italic: true, color: '8A969C'})], {before: 60, after: 60});
+    const ClsCell = (c, o={}) => Cell(c.t, Object.assign({fill: CLS_FILL[c.k][0], color: CLS_FILL[c.k][1], font: SANS, size: 7, caps: true, bold: true}, o));
+    const body = [];
+    const v = formVersion();
+
+    body.push(P([T('Escala de Evaluación del TDAH-5 para niños y adolescentes', {size: 16, bold: true})], {after: 40}));
+    body.push(P([T('DuPaul, Power, Anastopoulos y Reid (2016) · Versiones hogar y escuela', {font: SANS, size: 8, caps: true, color: C.gray, spacing: 14})], {after: 160}));
+
+    body.push(H2('Datos del paciente'));
+    const sexo = val('p-sexo')==='m' ? 'Masculino' : val('p-sexo')==='f' ? 'Femenino' : '';
+    const pf = [['Nombre', val('p-nombre')],['Apellidos', val('p-apellidos')],['Expediente', val('p-expediente')],['Examinador(a)', val('p-examinador')],
+                ['Sexo', sexo],['Edad', val('p-edad') ? val('p-edad') + ' años' : ''],['Grado escolar', val('p-grado')],['Fecha de aplicación', val('p-fecha')]];
+    const pRows = [];
+    for(let r=0;r<2;r++) pRows.push(Row(pf.slice(r*4, r*4+4).map(([l,x])=> Cell([
+      P([T(l, {font: SANS, size: 7, caps: true, color: C.light})]),
+      P([T(x, {size: 10.5})], {border: {bottom: {style: D.BorderStyle.SINGLE, size: 4, color: C.line, space: 1}}})
+    ], {noBorder: true, width: 25, pad: 70}))));
+    body.push(Table(pRows, {noBorder: true}));
+    const a = ageIdx(), s = sexKey();
+    const inf = [];
+    if(R.home.applied) inf.push('Hogar: ' + ([val('home-por'), val('home-informante')].filter(Boolean).join(', ') || 'padres') + (val('home-fecha') ? ' (' + val('home-fecha') + ')' : ''));
+    if(R.school.applied) inf.push('Escuela: ' + (val('school-informante') || 'maestro(a)') + (val('school-grupo') ? ', ' + val('school-grupo') : '') + (val('school-fecha') ? ' (' + val('school-fecha') + ')' : ''));
+    body.push(P([T('Normas: ', {font: SANS, size: 8.5, color: C.light}), T(s && a !== null ? `${s==='m'?'niños':'niñas'} de ${AGE_BANDS[a]} años` : 'no disponibles (faltan sexo o edad válidos)', {font: SANS, size: 8.5, bold: true}),
+                 T('   Formularios: ', {font: SANS, size: 8.5, color: C.light}), T(v==='adol'?'adolescentes':'niños', {font: SANS, size: 8.5, bold: true})], {before: 120}));
+    if(inf.length) body.push(P([T('Informantes: ', {font: SANS, size: 8.5, color: C.light}), T(inf.join(' · '), {font: SANS, size: 8.5, bold: true})], {before: 40}));
+
+    /* Resumen de síntomas */
+    body.push(H2('Resumen de puntuaciones de síntomas'));
+    const SC = [1900, 2600, 1100, 1150, 1100, 2390];
+    const sRows = [Row([TH('Informante', {dxa: SC[0]}), TH('Escala', {dxa: SC[1], align: 'left'}), TH('Punt. directa', {dxa: SC[2]}), TH('Percentil', {dxa: SC[3]}), TH('Síntomas 2–3', {dxa: SC[4]}), TH('Clasificación', {dxa: SC[5]})], true)];
+    SETS.forEach(set=>['IA','HI','TOT'].forEach((sc,k)=>{
+      const x = R[set][sc];
+      const cls = x.complete ? x.cls : (x.n ? {k:'na', t:'Incompleto'} : {k:'na', t:'Sin aplicar'});
+      sRows.push(Row([
+        k===0 ? Cell(SET_LABEL[set], {font: SANS, size: 7.5, caps: true, color: C.gray, rowSpan: 3}) : null,
+        Cell(SC_LABEL[sc], {align: 'left', size: 10}),
+        Cell(x.sum, {fill: C.accentSoft, bold: true, color: C.accent, size: 11}),
+        Cell(x.pct ? x.pct.label : '—', {font: SANS, size: 9, bold: true}),
+        Cell(x.cnt + '/' + (sc==='TOT'?18:9), {font: SANS, size: 9}),
+        ClsCell(cls)
+      ].filter(Boolean)));
+    }));
+    body.push(Table(sRows, {cols: SC}));
+    body.push(Note('Percentiles según las hojas de valoración de síntomas por sexo y edad. Clasificación orientativa: rango típico <P80 · elevado (en riesgo) P80–P92 · clínicamente significativo ≥P93. Síntomas presentes = ítems calificados 2 o 3.'));
+    const W = 620;
+    body.push(P([new D.ImageRun({data: dataUrlToBytes(chartToCanvas('sym', 3).toDataURL('image/png')), transformation: {width: W, height: Math.round(W*420/900)}})], {align: 'center', before: 120, after: 60}));
+
+    /* Deterioro */
+    body.push(H2('Deterioro funcional'));
+    const DC = [2440, 975, 975, 975, 975, 975, 975, 975, 975];
+    const dRows = [Row([TH('Dominio', {dxa: DC[0], align: 'left'}), ...SETS.flatMap(set=>['IA','HI'].map(sc=> TH(`${set==='home'?'Padres':'Maestros'} · ${sc}`, {span: 2, size: 7})))], true),
+                   Row([TH('', {dxa: DC[0]}), ...Array.from({length:4}, ()=>[TH('Punt.', {size: 6.5}), TH('Pc', {size: 6.5})]).flat()], true)];
+    for(let d=0; d<6; d++){
+      const cells = [Cell(DOMAINS.home[d] === DOMAINS.school[d] ? DOMAINS.home[d] : DOMAINS.home[d] + ' / relaciones con el maestro', {align: 'left', size: 9.5})];
+      SETS.forEach(set=>['IA','HI'].forEach(sc=>{
+        const sv = R[set][sc].imp[d];
+        cells.push(sv === null ? Cell('—', {font: SANS, size: 9}) : ClsCell({k: impClass(sv).k, t: String(sv)}, {size: 9}));
+        cells.push(Cell(R[set][sc].impPct[d] ? R[set][sc].impPct[d].label : '—', {font: SANS, size: 8}));
+      }));
+      dRows.push(Row(cells));
+    }
+    body.push(Table(dRows, {cols: DC}));
+    body.push(Note('0 = ningún problema · 1 = problema menor · 2 = problema moderado · 3 = problema grave. Una calificación de 2 o 3 indica deterioro clínicamente relevante. IA = asociado a síntomas de inatención; HI = asociado a hiperactividad-impulsividad.'));
+    body.push(P([new D.ImageRun({data: dataUrlToBytes(chartToCanvas('imp', 3).toDataURL('image/png')), transformation: {width: W, height: Math.round(W*400/900)}})], {align: 'center', before: 120, after: 60}));
+
+    /* Tabla 5-5 */
+    body.push(H2('Puntos de corte para diagnosticar y descartar TDAH (Tabla 5-5)'));
+    const RC = [3700, 4140, 2400];
+    const rRows = [Row([TH('Regla', {dxa: RC[0], align: 'left'}), TH('Condiciones (obtenido)', {dxa: RC[1], align: 'left'}), TH('Resultado', {dxa: RC[2]})], true)];
+    const mk = e => e.ok === null ? '○' : e.ok ? '✓' : '✗';
+    lastRules.forEach(r=>{
+      const paras = r.rule.conds.map((c,i)=> P([T(mk(r.main.ev[i]) + ' ', {font: 'Segoe UI Symbol', size: 9, color: r.main.ev[i].ok ? C.accent : C.danger}), T(`${condText(c)} (${r.main.ev[i].got})`, {font: SANS, size: 8})]));
+      if(r.rule.alt){
+        paras.push(P([T('Alternativa:', {font: SANS, size: 7.5, italic: true, color: C.light})], {before: 40}));
+        r.rule.alt.forEach((c,i)=> paras.push(P([T(mk(r.alt.ev[i]) + ' ', {font: 'Segoe UI Symbol', size: 9, color: r.alt.ev[i].ok ? C.accent : C.danger}), T(`${condText(c)} (${r.alt.ev[i].got})`, {font: SANS, size: 8})])));
+      }
+      rRows.push(Row([Cell(r.rule.name, {align: 'left', size: 9.5}), Cell(paras), ClsCell(ruleVerdict(r))]));
+    });
+    body.push(Table(rRows, {cols: RC}));
+    body.push(Note('Estudio basado en la clínica; requiere ambos informantes. "Percentil 923" de la tabla original se tomó como P93. La fila "Detección de TDAH/I" usa cortes "menor que" y funciona como regla para descartar.'));
+
+    /* DSM-5 */
+    body.push(H2('Conteo de síntomas DSM-5'));
+    const dd = lastDsm;
+    const DSC = [3640, 1650, 1650, 1650, 1650];
+    body.push(Table([
+      Row([TH('Dimensión', {dxa: DSC[0], align: 'left'}), TH('Padres'), TH('Maestros'), TH('En algún contexto'), TH('En ambos')], true),
+      ...['IA','HI'].map(sc=> Row([Cell(SC_LABEL[sc], {align: 'left', size: 10}), ...['home','school','either','both'].map(k=> Cell(dd[sc][k] + '/9', {font: SANS, size: 9.5, bold: dd[sc][k] >= dd.thr, color: dd[sc][k] >= dd.thr ? C.danger : C.ink, fill: dd[sc][k] >= dd.thr ? C.dangerSoft : undefined}))]))
+    ], {cols: DSC}));
+    body.push(Note(`Umbral DSM-5 para la edad: ${dd.thr} o más síntomas por dimensión. El conteo es orientativo y no sustituye el juicio clínico.`));
+
+    /* Interpretación */
+    const an = cleanReportText(val('analisis'));
+    if(an){
+      body.push(H2('Interpretación clínica'));
+      an.split(/\n+/).forEach(par=> body.push(P([T(par, {size: 10.5})], {after: 100, line: 300, align: 'justify'})));
+    }
+
+    /* Respuestas */
+    SETS.forEach(set=>{
+      if(!R[set].applied) return;
+      body.push(H2('Respuestas · ' + SET_TITLE[set].toLowerCase().replace(/^./, c=>c.toUpperCase())));
+      ['IA','HI'].forEach(sc=>{
+        body.push(H3(SC_LABEL[sc]));
+        const IC = [520, 6720, 3000];
+        const rows = [Row([TH('#', {dxa: IC[0]}), TH('Ítem', {dxa: IC[1], align: 'left'}), TH('Respuesta', {dxa: IC[2]})], true)];
+        FORMS[set][v][sc].forEach((t,i)=>{
+          const x = R[set][sc].items[i];
+          rows.push(Row([Cell((sc==='IA'?1:10)+i, {font: SANS, size: 8, color: C.light}), Cell(t, {align: 'left', size: 9}),
+            x === null ? Cell('sin respuesta', {font: SANS, size: 8, italic: true, color: C.danger}) : Cell(`${x} · ${RESP[set][x]}`, {font: SANS, size: 8.5, bold: x >= 2, fill: x >= 2 ? C.amberSoft : undefined, color: x >= 2 ? C.amber : C.ink})]));
+        });
+        rows.push(Row([Cell('', {fill: C.totals}), Cell('Puntuación directa', {fill: C.totals, font: SANS, size: 7.5, caps: true, color: C.gray, align: 'right'}), Cell(R[set][sc].sum, {fill: C.totals, bold: true})]));
+        body.push(Table(rows, {cols: IC}));
+        body.push(P([T('Deterioro asociado', {font: SANS, size: 7.5, caps: true, bold: true, color: C.gray})], {before: 100, after: 40, keepNext: true}));
+        const imRows = [Row([TH('#', {dxa: IC[0]}), TH('Dominio', {dxa: IC[1], align: 'left'}), TH('Respuesta', {dxa: IC[2]})], true)];
+        FORMS[set][v].IMP.forEach((t,d)=>{
+          const x = R[set][sc].imp[d];
+          imRows.push(Row([Cell(d+1, {font: SANS, size: 8, color: C.light}), Cell(t, {align: 'left', size: 9}),
+            x === null ? Cell('sin respuesta', {font: SANS, size: 8, italic: true, color: C.danger}) : ClsCell({k: impClass(x).k, t: `${x} · ${IMP_RESP[x]}`}, {caps: false, size: 8})]));
+        });
+        body.push(Table(imRows, {cols: IC}));
+      });
+    });
+
+    const doc = new D.Document({
+      creator: val('p-examinador') || 'Neuropsicología', title: 'Escala TDAH-5 ' + patientName(),
+      styles: {default: {document: {run: {font: SERIF, size: 20, color: C.ink}}}},
+      sections: [{properties: {page: {size: {width: 12240, height: 15840}, margin: {top: 1000, right: 1000, bottom: 1000, left: 1000}}}, children: body}]
+    });
+    const blob = await D.Packer.toBlob(doc);
+    const url = URL.createObjectURL(blob);
+    downloadDataUrl(url, baseFileName() + '.docx');
+    setTimeout(()=>URL.revokeObjectURL(url), 4000);
+  }catch(e){
+    console.error(e);
+    alert('No se pudo generar el .docx: ' + e.message);
+  }finally{ btn.disabled = false; }
+}
+
+/* ================== EVENTOS E INICIO ================== */
+function onAnyChange(){ recalcAll(); scheduleSave(); }
+function handleNoSave(t){
+  if(t.id === 'aiProvider') switchProvider();
+  else if(t.id === 'aiModel' || t.id === 'aiRemember' || t.id === 'aiKey') rememberAI();
+}
+document.addEventListener('input', ev=>{
+  const t = ev.target;
+  if(t.hasAttribute && t.hasAttribute('data-nosave')){ handleNoSave(t); return; }
+  if(t.type === 'radio') return; // lo maneja 'change'
+  onAnyChange();
+});
+document.addEventListener('change', ev=>{
+  const t = ev.target;
+  if(t.hasAttribute && t.hasAttribute('data-nosave')){ if(t.id !== 'loadFile') handleNoSave(t); return; }
+  onAnyChange();
+});
+// Captura rápida: con el foco en un ítem, teclear 0-3 responde y avanza al siguiente
+document.addEventListener('keydown', ev=>{
+  const t = ev.target;
+  if(!(t.type === 'radio' && t.closest('.items')) || !/^[0-3]$/.test(ev.key)) return;
+  ev.preventDefault();
+  const tr = t.closest('tr');
+  const inp = tr.querySelector(`input[value="${ev.key}"]`);
+  inp.checked = true; inp.dispatchEvent(new Event('change', {bubbles: true}));
+  const rows = [...document.querySelectorAll('.items tbody tr')];
+  const next = rows[rows.indexOf(tr) + 1];
+  if(next){ const nx = next.querySelector('input:checked') || next.querySelector('input'); nx.focus(); }
+});
+
+window.addEventListener('pagehide', ()=>{ if(saveTimer){ clearTimeout(saveTimer); storageSet(STORAGE_KEY, JSON.stringify(collectState())); } });
+
+buildInformants();
+restoreAI();
+(function restore(){
+  const raw = storageGet(STORAGE_KEY);
+  if(!raw) return;
+  try{ const st = JSON.parse(raw); if(applyState(st)) $('saveStatus').innerHTML = 'Avance restaurado · <b>' + new Date(st.savedAt).toLocaleString('es-MX') + '</b>'; }catch(e){}
+})();
+if(!val('p-fecha')) $('p-fecha').value = new Date().toISOString().slice(0,10);
+recalcAll();
+</script>
+</body>
+</html>
